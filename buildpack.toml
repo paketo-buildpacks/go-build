@@ -1,0 +1,18 @@
+api = "0.2"
+
+[buildpack]
+  id = "paketo-buildpacks/go-build"
+  name = "Go Build Buildpack"
+
+[metadata]
+  include_files = [ "bin/build", "bin/detect", "bin/run", "buildpack.toml" ]
+  pre_package = "./scripts/build.sh"
+
+[[stacks]]
+  id = "io.buildpacks.stacks.bionic"
+
+[[stacks]]
+  id = "io.paketo.stacks.tiny"
+
+[[stacks]]
+  id = "org.cloudfoundry.stacks.cflinuxfs3"
