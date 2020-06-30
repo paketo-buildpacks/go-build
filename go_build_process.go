@@ -18,6 +18,15 @@ type Executable interface {
 	Execute(pexec.Execution) (err error)
 }
 
+type GoBuildConfiguration struct {
+	Workspace string
+	Output    string
+	GoPath    string
+	GoCache   string
+	Targets   []string
+	Flags     []string
+}
+
 type GoBuildProcess struct {
 	executable Executable
 	logs       LogEmitter
@@ -32,27 +41,42 @@ func NewGoBuildProcess(executable Executable, logs LogEmitter, clock chronos.Clo
 	}
 }
 
-func (p GoBuildProcess) Execute(workspace, output, goPath, goCache string, targets []string) (string, error) {
+func (p GoBuildProcess) Execute(config GoBuildConfiguration) (string, error) {
 	p.logs.Process("Executing build process")
 
-	err := os.MkdirAll(output, os.ModePerm)
+	err := os.MkdirAll(config.Output, os.ModePerm)
 	if err != nil {
 		return "", fmt.Errorf("failed to create targets output directory: %w", err)
 	}
 
-	args := []string{"build", "-o", output, "-buildmode", "pie"}
+	contains := func(flags []string, match string) bool {
+		for _, flag := range flags {
+			if flag == match {
+				return true
+			}
+		}
 
-	if _, err = os.Stat(filepath.Join(workspace, "go.mod")); err == nil {
-		if _, err = os.Stat(filepath.Join(workspace, "vendor")); err == nil {
-			args = append(args, "-mod", "vendor")
+		return false
+	}
+
+	if !contains(config.Flags, "-buildmode") {
+		config.Flags = append(config.Flags, "-buildmode", "pie")
+	}
+
+	if _, err = os.Stat(filepath.Join(config.Workspace, "go.mod")); err == nil {
+		if _, err = os.Stat(filepath.Join(config.Workspace, "vendor")); err == nil {
+			if !contains(config.Flags, "-mod") {
+				config.Flags = append(config.Flags, "-mod", "vendor")
+			}
 		}
 	}
 
-	args = append(args, targets...)
+	args := append([]string{"build", "-o", config.Output}, config.Flags...)
+	args = append(args, config.Targets...)
 
-	env := append(os.Environ(), fmt.Sprintf("GOCACHE=%s", goCache))
-	if goPath != "" {
-		env = append(env, fmt.Sprintf("GOPATH=%s", goPath))
+	env := append(os.Environ(), fmt.Sprintf("GOCACHE=%s", config.GoCache))
+	if config.GoPath != "" {
+		env = append(env, fmt.Sprintf("GOPATH=%s", config.GoPath))
 	}
 
 	p.logs.Subprocess("Running '%s'", strings.Join(append([]string{"go"}, args...), " "))
@@ -61,7 +85,7 @@ func (p GoBuildProcess) Execute(workspace, output, goPath, goCache string, targe
 	duration, err := p.clock.Measure(func() error {
 		return p.executable.Execute(pexec.Execution{
 			Args:   args,
-			Dir:    workspace,
+			Dir:    config.Workspace,
 			Env:    env,
 			Stdout: buffer,
 			Stderr: buffer,
@@ -77,7 +101,7 @@ func (p GoBuildProcess) Execute(workspace, output, goPath, goCache string, targe
 	p.logs.Action("Completed in %s", duration.Round(time.Millisecond))
 	p.logs.Break()
 
-	paths, err := filepath.Glob(fmt.Sprintf("%s/*", output))
+	paths, err := filepath.Glob(fmt.Sprintf("%s/*", config.Output))
 	if err != nil {
 		return "", fmt.Errorf("failed to list targets: %w", err)
 	}

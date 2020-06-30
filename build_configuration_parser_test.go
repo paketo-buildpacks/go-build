@@ -11,37 +11,48 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func testBuildTargetsParser(t *testing.T, context spec.G, it spec.S) {
+func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
 		path string
 
-		parser gobuild.BuildTargetsParser
+		parser gobuild.BuildConfigurationParser
 	)
 
 	it.Before(func() {
 		file, err := ioutil.TempFile("", "buildpack.yml")
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = file.WriteString("---\ngo:\n  targets: [\"first\", \"./second\"]\n")
+		_, err = file.WriteString(`---
+go:
+  targets:
+  - first
+  - ./second
+  build:
+    flags:
+    - -first
+    - value
+    - -second=value
+`)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(file.Close()).To(Succeed())
 
 		path = file.Name()
 
-		parser = gobuild.NewBuildTargetsParser()
+		parser = gobuild.NewBuildConfigurationParser()
 	})
 
 	it.After(func() {
 		Expect(os.RemoveAll(path)).To(Succeed())
 	})
 
-	it("parses the targets from a buildpack.yml", func() {
-		targets, err := parser.Parse(path)
+	it("parses the targets and flags from a buildpack.yml", func() {
+		targets, flags, err := parser.Parse(path)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(targets).To(Equal([]string{"./first", "./second"}))
+		Expect(flags).To(Equal([]string{"-first", "value", "-second", "value"}))
 	})
 
 	context("when there is no buildpack.yml file", func() {
@@ -49,10 +60,11 @@ func testBuildTargetsParser(t *testing.T, context spec.G, it spec.S) {
 			Expect(os.Remove(path)).To(Succeed())
 		})
 
-		it("returns a list of targets with . as the only target", func() {
-			targets, err := parser.Parse(path)
+		it("returns a list of targets with . as the only target, and empty list of flags", func() {
+			targets, flags, err := parser.Parse(path)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(targets).To(Equal([]string{"."}))
+			Expect(flags).To(BeEmpty())
 		})
 	})
 
@@ -62,7 +74,7 @@ func testBuildTargetsParser(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("returns a list of targets with . as the only target", func() {
-			targets, err := parser.Parse(path)
+			targets, _, err := parser.Parse(path)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(targets).To(Equal([]string{"."}))
 		})
@@ -75,7 +87,7 @@ func testBuildTargetsParser(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("returns an error", func() {
-				_, err := parser.Parse(path)
+				_, _, err := parser.Parse(path)
 				Expect(err).To(MatchError(ContainSubstring("failed to read buildpack.yml:")))
 				Expect(err).To(MatchError(ContainSubstring("permission denied")))
 			})
@@ -87,7 +99,7 @@ func testBuildTargetsParser(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("returns an error", func() {
-				_, err := parser.Parse(path)
+				_, _, err := parser.Parse(path)
 				Expect(err).To(MatchError(ContainSubstring("failed to decode buildpack.yml:")))
 				Expect(err).To(MatchError(ContainSubstring("could not find expected directive name")))
 			})
@@ -99,7 +111,7 @@ func testBuildTargetsParser(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("returns an error", func() {
-				_, err := parser.Parse(path)
+				_, _, err := parser.Parse(path)
 				Expect(err).To(MatchError(ContainSubstring("failed to determine build targets: \"/some-target\" is an absolute path, targets must be relative to the source directory")))
 			})
 		})

@@ -29,7 +29,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		buildProcess  *fakes.BuildProcess
 		pathManager   *fakes.PathManager
 		calculator    *fakes.ChecksumCalculator
-		targetsParser *fakes.TargetsParser
+		parser        *fakes.ConfigurationParser
 		logs          *bytes.Buffer
 		timestamp     time.Time
 		sourceRemover *fakes.SourceRemover
@@ -65,8 +65,9 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 		logs = bytes.NewBuffer(nil)
 
-		targetsParser = &fakes.TargetsParser{}
-		targetsParser.ParseCall.Returns.Targets = []string{"some-target", "other-target"}
+		parser = &fakes.ConfigurationParser{}
+		parser.ParseCall.Returns.Targets = []string{"some-target", "other-target"}
+		parser.ParseCall.Returns.Flags = []string{"some-flag", "other-flag"}
 
 		sourceRemover = &fakes.SourceRemover{}
 
@@ -76,7 +77,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			clock,
 			calculator,
 			gobuild.NewLogEmitter(logs),
-			targetsParser,
+			parser,
 			sourceRemover,
 		)
 	})
@@ -139,15 +140,18 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 		Expect(calculator.SumCall.Receives.Path).To(Equal(workingDir))
 
-		Expect(targetsParser.ParseCall.Receives.Path).To(Equal(filepath.Join(workingDir, "buildpack.yml")))
+		Expect(parser.ParseCall.Receives.Path).To(Equal(filepath.Join(workingDir, "buildpack.yml")))
 
 		Expect(pathManager.SetupCall.Receives.Workspace).To(Equal(workingDir))
 
-		Expect(buildProcess.ExecuteCall.Receives.Workspace).To(Equal("some-app-path"))
-		Expect(buildProcess.ExecuteCall.Receives.Output).To(Equal(filepath.Join(layersDir, "targets", "bin")))
-		Expect(buildProcess.ExecuteCall.Receives.GoPath).To(Equal("some-go-path"))
-		Expect(buildProcess.ExecuteCall.Receives.GoCache).To(Equal(filepath.Join(layersDir, "gocache")))
-		Expect(buildProcess.ExecuteCall.Receives.Targets).To(Equal([]string{"some-target", "other-target"}))
+		Expect(buildProcess.ExecuteCall.Receives.Config).To(Equal(gobuild.GoBuildConfiguration{
+			Workspace: "some-app-path",
+			Output:    filepath.Join(layersDir, "targets", "bin"),
+			GoPath:    "some-go-path",
+			GoCache:   filepath.Join(layersDir, "gocache"),
+			Flags:     []string{"some-flag", "other-flag"},
+			Targets:   []string{"some-target", "other-target"},
+		}))
 
 		Expect(pathManager.TeardownCall.Receives.GoPath).To(Equal("some-go-path"))
 
@@ -337,9 +341,9 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			})
 		})
 
-		context("when the targets cannot be parsed", func() {
+		context("when the configuration cannot be parsed", func() {
 			it.Before(func() {
-				targetsParser.ParseCall.Returns.Err = errors.New("failed to parse targets")
+				parser.ParseCall.Returns.Err = errors.New("failed to parse configuration")
 			})
 
 			it("returns an error", func() {
@@ -353,7 +357,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					},
 					Layers: packit.Layers{Path: layersDir},
 				})
-				Expect(err).To(MatchError("failed to parse targets"))
+				Expect(err).To(MatchError("failed to parse configuration"))
 			})
 		})
 

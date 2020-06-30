@@ -80,6 +80,7 @@ func TestIntegration(t *testing.T) {
 
 	suite := spec.New("Integration", spec.Report(report.Terminal{}), spec.Parallel())
 	suite("BuildFailure", testBuildFailure)
+	suite("BuildFlags", testBuildFlags)
 	suite("Default", testDefault)
 	suite("LayerReuse", testLayerReuse)
 	suite("Mod", testMod)

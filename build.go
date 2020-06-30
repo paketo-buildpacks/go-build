@@ -11,7 +11,7 @@ import (
 
 //go:generate faux --interface BuildProcess --output fakes/build_process.go
 type BuildProcess interface {
-	Execute(workspace, output, goPath, goCache string, targets []string) (command string, err error)
+	Execute(config GoBuildConfiguration) (command string, err error)
 }
 
 //go:generate faux --interface PathManager --output fakes/path_manager.go
@@ -36,7 +36,7 @@ func Build(
 	clock chronos.Clock,
 	checksumCalculator ChecksumCalculator,
 	logs LogEmitter,
-	parser TargetsParser,
+	parser ConfigurationParser,
 	sourceRemover SourceRemover,
 ) packit.BuildFunc {
 
@@ -60,7 +60,7 @@ func Build(
 
 		previousSum, _ := targetsLayer.Metadata[WorkspaceSHAKey].(string)
 		if checksum != previousSum {
-			targets, err := parser.Parse(filepath.Join(context.WorkingDir, "buildpack.yml"))
+			targets, flags, err := parser.Parse(filepath.Join(context.WorkingDir, "buildpack.yml"))
 			if err != nil {
 				return packit.BuildResult{}, err
 			}
@@ -70,7 +70,14 @@ func Build(
 				return packit.BuildResult{}, err
 			}
 
-			command, err := buildProcess.Execute(path, filepath.Join(targetsLayer.Path, "bin"), goPath, goCacheLayer.Path, targets)
+			command, err := buildProcess.Execute(GoBuildConfiguration{
+				Workspace: path,
+				Output:    filepath.Join(targetsLayer.Path, "bin"),
+				GoPath:    goPath,
+				GoCache:   goCacheLayer.Path,
+				Flags:     flags,
+				Targets:   targets,
+			})
 			if err != nil {
 				return packit.BuildResult{}, err
 			}

@@ -1,0 +1,6 @@
+---
+go:
+  build:
+    flags:
+    - -buildmode=default
+    - -tags=paketo
