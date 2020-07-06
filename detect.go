@@ -6,14 +6,14 @@ import (
 	"github.com/paketo-buildpacks/packit"
 )
 
-//go:generate faux --interface TargetsParser --output fakes/targets_parser.go
-type TargetsParser interface {
-	Parse(path string) (targets []string, err error)
+//go:generate faux --interface ConfigurationParser --output fakes/configuration_parser.go
+type ConfigurationParser interface {
+	Parse(path string) (targets, flags []string, err error)
 }
 
-func Detect(targetsParser TargetsParser) packit.DetectFunc {
+func Detect(parser ConfigurationParser) packit.DetectFunc {
 	return func(context packit.DetectContext) (packit.DetectResult, error) {
-		targets, err := targetsParser.Parse(filepath.Join(context.WorkingDir, "buildpack.yml"))
+		targets, _, err := parser.Parse(filepath.Join(context.WorkingDir, "buildpack.yml"))
 		if err != nil {
 			return packit.DetectResult{}, err
 		}

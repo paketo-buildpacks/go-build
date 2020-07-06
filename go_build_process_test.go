@@ -92,7 +92,13 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	it("executes the go build process", func() {
-		command, err := buildProcess.Execute(workspacePath, filepath.Join(layerPath, "bin"), goPath, goCache, []string{"./some-target", "./other-target"})
+		command, err := buildProcess.Execute(gobuild.GoBuildConfiguration{
+			Workspace: workspacePath,
+			Output:    filepath.Join(layerPath, "bin"),
+			GoPath:    goPath,
+			GoCache:   goCache,
+			Targets:   []string{"./some-target", "./other-target"},
+		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(command).To(Equal(filepath.Join(layerPath, "bin", "a_command")))
 
@@ -120,7 +126,13 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("executes the go build process with -mod=vendor", func() {
-			command, err := buildProcess.Execute(workspacePath, filepath.Join(layerPath, "bin"), goPath, goCache, []string{"./some-target", "./other-target"})
+			command, err := buildProcess.Execute(gobuild.GoBuildConfiguration{
+				Workspace: workspacePath,
+				Output:    filepath.Join(layerPath, "bin"),
+				GoPath:    goPath,
+				GoCache:   goCache,
+				Targets:   []string{"./some-target", "./other-target"},
+			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(command).To(Equal(filepath.Join(layerPath, "bin", "a_command")))
 
@@ -137,6 +149,42 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 		})
 	})
 
+	context("when there are build flags", func() {
+		it.Before(func() {
+			Expect(ioutil.WriteFile(filepath.Join(workspacePath, "go.mod"), nil, 0644)).To(Succeed())
+			Expect(os.Mkdir(filepath.Join(workspacePath, "vendor"), os.ModePerm)).To(Succeed())
+		})
+
+		it("executes the go build process with those flags", func() {
+			command, err := buildProcess.Execute(gobuild.GoBuildConfiguration{
+				Workspace: workspacePath,
+				Output:    filepath.Join(layerPath, "bin"),
+				GoCache:   goCache,
+				Targets:   []string{"."},
+				Flags:     []string{"-buildmode", "default", "-tags", "paketo", "-mod", "mod"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(command).To(Equal(filepath.Join(layerPath, "bin", "a_command")))
+
+			Expect(filepath.Join(layerPath, "bin")).To(BeADirectory())
+
+			Expect(executable.ExecuteCall.Receives.Execution.Args).To(Equal([]string{
+				"build",
+				"-o", filepath.Join(layerPath, "bin"),
+				"-buildmode", "default",
+				"-tags", "paketo",
+				"-mod", "mod",
+				".",
+			}))
+			Expect(executable.ExecuteCall.Receives.Execution.Dir).To(Equal(workspacePath))
+			Expect(executable.ExecuteCall.Receives.Execution.Env).To(ContainElement(fmt.Sprintf("GOCACHE=%s", goCache)))
+
+			Expect(logs.String()).To(ContainSubstring("  Executing build process"))
+			Expect(logs.String()).To(ContainSubstring(fmt.Sprintf("    Running 'go build -o %s -buildmode default -tags paketo -mod mod .'", filepath.Join(layerPath, "bin"))))
+			Expect(logs.String()).To(ContainSubstring("      Completed in 1s"))
+		})
+	})
+
 	context("when the GOPATH is empty", func() {
 		it.Before(func() {
 			Expect(ioutil.WriteFile(filepath.Join(workspacePath, "go.mod"), nil, 0644)).To(Succeed())
@@ -144,7 +192,13 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("executes the go build process without setting GOPATH", func() {
-			command, err := buildProcess.Execute(workspacePath, filepath.Join(layerPath, "bin"), "", goCache, []string{"./some-target", "./other-target"})
+			command, err := buildProcess.Execute(gobuild.GoBuildConfiguration{
+				Workspace: workspacePath,
+				Output:    filepath.Join(layerPath, "bin"),
+				GoPath:    "",
+				GoCache:   goCache,
+				Targets:   []string{"./some-target", "./other-target"},
+			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(command).To(Equal(filepath.Join(layerPath, "bin", "a_command")))
 
@@ -161,7 +215,13 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("returns an error", func() {
-				_, err := buildProcess.Execute(workspacePath, filepath.Join(layerPath, "bin"), goPath, goCache, []string{"./some-target", "./other-target"})
+				_, err := buildProcess.Execute(gobuild.GoBuildConfiguration{
+					Workspace: workspacePath,
+					Output:    filepath.Join(layerPath, "bin"),
+					GoPath:    goPath,
+					GoCache:   goCache,
+					Targets:   []string{"./some-target", "./other-target"},
+				})
 				Expect(err).To(MatchError(ContainSubstring("failed to create targets output directory:")))
 				Expect(err).To(MatchError(ContainSubstring("permission denied")))
 			})
@@ -178,7 +238,13 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("returns an error", func() {
-				_, err := buildProcess.Execute(workspacePath, filepath.Join(layerPath, "bin"), goPath, goCache, []string{"./some-target", "./other-target"})
+				_, err := buildProcess.Execute(gobuild.GoBuildConfiguration{
+					Workspace: workspacePath,
+					Output:    filepath.Join(layerPath, "bin"),
+					GoPath:    goPath,
+					GoCache:   goCache,
+					Targets:   []string{"./some-target", "./other-target"},
+				})
 				Expect(err).To(MatchError("failed to execute 'go build': command failed"))
 
 				Expect(logs.String()).To(ContainSubstring("      Failed after 1s"))
@@ -193,7 +259,13 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("returns an error", func() {
-				_, err := buildProcess.Execute(workspacePath, filepath.Join(layerPath, "bin"), goPath, goCache, []string{"./some-target", "./other-target"})
+				_, err := buildProcess.Execute(gobuild.GoBuildConfiguration{
+					Workspace: workspacePath,
+					Output:    filepath.Join(layerPath, "bin"),
+					GoPath:    goPath,
+					GoCache:   goCache,
+					Targets:   []string{"./some-target", "./other-target"},
+				})
 				Expect(err).To(MatchError("failed to determine go executable start command"))
 			})
 		})
