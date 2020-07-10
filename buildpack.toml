@@ -3,6 +3,7 @@ api = "0.2"
 [buildpack]
   id = "paketo-buildpacks/go-build"
   name = "Go Build Buildpack"
+  homepage = "https://github.com/paketo-buildpacks/go-build"
 
 [metadata]
   include_files = [ "bin/build", "bin/detect", "bin/run", "buildpack.toml" ]
