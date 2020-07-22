@@ -90,5 +90,48 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 				fmt.Sprintf("    web: /layers/%s/targets/bin/first", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 			))
 		})
+
+		context("when building an app with target specified via BP_GO_TARGETS env", func() {
+			it("builds successfully", func() {
+				var err error
+				var logs fmt.Stringer
+
+				source, err = occam.Source(filepath.Join("testdata", "targets"))
+				Expect(err).NotTo(HaveOccurred())
+
+				image, logs, err = pack.Build.
+					WithNoPull().
+					WithEnv(map[string]string{"BP_GO_TARGETS": "./third"}).
+					WithBuildpacks(
+						settings.Buildpacks.GoDist.Online,
+						settings.Buildpacks.GoBuild.Online,
+					).
+					Execute(name, source)
+				Expect(err).ToNot(HaveOccurred(), logs.String)
+
+				container, err = docker.Container.Run.Execute(image.ID)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(container).Should(BeAvailable())
+
+				response, err := http.Get(fmt.Sprintf("http://localhost:%s", container.HostPort()))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+				content, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(content)).To(ContainSubstring("third: go1.14"))
+
+				Expect(logs).To(ContainLines(
+					MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
+					"  Executing build process",
+					fmt.Sprintf("    Running 'go build -o /layers/%s/targets/bin -buildmode pie ./third'", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+					MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
+					"",
+					"  Assigning launch processes",
+					fmt.Sprintf("    web: /layers/%s/targets/bin/third", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+				))
+			})
+		})
 	})
 }
