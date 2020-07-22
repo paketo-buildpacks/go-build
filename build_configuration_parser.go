@@ -57,5 +57,9 @@ func (p BuildConfigurationParser) Parse(path string) ([]string, []string, error)
 		config.Go.Targets[index] = fmt.Sprintf("./%s", filepath.Clean(target))
 	}
 
+	if bpGoTargets := os.Getenv("BP_GO_TARGETS"); bpGoTargets != "" {
+		config.Go.Targets = strings.Split(bpGoTargets, ":")
+	}
+
 	return config.Go.Targets, config.Go.Build.Flags, nil
 }
