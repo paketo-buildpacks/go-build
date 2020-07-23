@@ -66,6 +66,23 @@ go:
 			Expect(targets).To(Equal([]string{"."}))
 			Expect(flags).To(BeEmpty())
 		})
+
+		context("BP_GO_TARGETS env variable is set", func() {
+			it.Before(func() {
+				os.Setenv("BP_GO_TARGETS", "./some/target1:./some/target2")
+			})
+
+			it.After(func() {
+				os.Unsetenv("BP_GO_TARGETS")
+			})
+
+			it("uses the values in the env var", func() {
+				targets, flags, err := parser.Parse(path)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(targets).To(Equal([]string{"./some/target1", "./some/target2"}))
+				Expect(flags).To(BeEmpty())
+			})
+		})
 	})
 
 	context("when the targets list is empty", func() {

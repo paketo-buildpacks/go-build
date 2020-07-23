@@ -17,10 +17,19 @@ func NewBuildConfigurationParser() BuildConfigurationParser {
 }
 
 func (p BuildConfigurationParser) Parse(path string) ([]string, []string, error) {
+	var targets []string
+	if len(os.Getenv("BP_GO_TARGETS")) > 0 {
+		targets = strings.Split(os.Getenv("BP_GO_TARGETS"), ":")
+	}
+
 	file, err := os.Open(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return []string{"."}, nil, nil
+			if len(targets) == 0 {
+				targets = []string{"."}
+			}
+
+			return targets, nil, nil
 		}
 
 		return nil, nil, fmt.Errorf("failed to read buildpack.yml: %w", err)
@@ -40,15 +49,15 @@ func (p BuildConfigurationParser) Parse(path string) ([]string, []string, error)
 		return nil, nil, fmt.Errorf("failed to decode buildpack.yml: %w", err)
 	}
 
+	if len(targets) > 0 {
+		config.Go.Targets = targets
+	}
+
 	var buildFlags []string
 	for _, flag := range config.Go.Build.Flags {
 		buildFlags = append(buildFlags, strings.SplitN(flag, "=", 2)...)
 	}
 	config.Go.Build.Flags = buildFlags
-
-	if len(config.Go.Targets) == 0 {
-		return []string{"."}, config.Go.Build.Flags, nil
-	}
 
 	for index, target := range config.Go.Targets {
 		if strings.HasPrefix(target, string(filepath.Separator)) {
@@ -57,8 +66,8 @@ func (p BuildConfigurationParser) Parse(path string) ([]string, []string, error)
 		config.Go.Targets[index] = fmt.Sprintf("./%s", filepath.Clean(target))
 	}
 
-	if bpGoTargets := os.Getenv("BP_GO_TARGETS"); bpGoTargets != "" {
-		config.Go.Targets = strings.Split(bpGoTargets, ":")
+	if len(config.Go.Targets) == 0 {
+		config.Go.Targets = []string{"."}
 	}
 
 	return config.Go.Targets, config.Go.Build.Flags, nil
