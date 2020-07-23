@@ -43,6 +43,9 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 			var err error
 			name, err = occam.RandomName()
 			Expect(err).NotTo(HaveOccurred())
+
+			source, err = occam.Source(filepath.Join("testdata", "targets"))
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		it.After(func() {
@@ -54,9 +57,6 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 
 		it("builds successfully", func() {
 			var err error
-			source, err = occam.Source(filepath.Join("testdata", "targets"))
-			Expect(err).NotTo(HaveOccurred())
-
 			var logs fmt.Stringer
 			image, logs, err = pack.Build.
 				WithNoPull().
@@ -95,10 +95,6 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 			it("builds successfully", func() {
 				var err error
 				var logs fmt.Stringer
-
-				source, err = occam.Source(filepath.Join("testdata", "targets"))
-				Expect(err).NotTo(HaveOccurred())
-
 				image, logs, err = pack.Build.
 					WithNoPull().
 					WithEnv(map[string]string{"BP_GO_TARGETS": "./third"}).
@@ -131,6 +127,49 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 					"  Assigning launch processes",
 					fmt.Sprintf("    web: /layers/%s/targets/bin/third", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 				))
+			})
+
+			context("when buildpack.yml is missing", func() {
+				it.Before(func() {
+					Expect(os.Remove(filepath.Join(source, "buildpack.yml"))).To(Succeed())
+				})
+
+				it("builds successfully", func() {
+					var err error
+					var logs fmt.Stringer
+					image, logs, err = pack.Build.
+						WithNoPull().
+						WithEnv(map[string]string{"BP_GO_TARGETS": "./second"}).
+						WithBuildpacks(
+							settings.Buildpacks.GoDist.Online,
+							settings.Buildpacks.GoBuild.Online,
+						).
+						Execute(name, source)
+					Expect(err).ToNot(HaveOccurred(), logs.String)
+
+					container, err = docker.Container.Run.Execute(image.ID)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(container).Should(BeAvailable())
+
+					response, err := http.Get(fmt.Sprintf("http://localhost:%s", container.HostPort()))
+					Expect(err).NotTo(HaveOccurred())
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+					content, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(string(content)).To(ContainSubstring("second: go1.14"))
+
+					Expect(logs).To(ContainLines(
+						MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
+						"  Executing build process",
+						fmt.Sprintf("    Running 'go build -o /layers/%s/targets/bin -buildmode pie ./second'", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+						MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
+						"",
+						"  Assigning launch processes",
+						fmt.Sprintf("    web: /layers/%s/targets/bin/second", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+					))
+				})
 			})
 		})
 	})
