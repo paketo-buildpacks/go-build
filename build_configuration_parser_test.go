@@ -34,6 +34,8 @@ go:
     - -first
     - value
     - -second=value
+    - -third="value"
+    - -fourth='value'
 `)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -52,7 +54,12 @@ go:
 		targets, flags, err := parser.Parse(path)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(targets).To(Equal([]string{"./first", "./second"}))
-		Expect(flags).To(Equal([]string{"-first", "value", "-second", "value"}))
+		Expect(flags).To(Equal([]string{
+			"-first", "value",
+			"-second", "value",
+			"-third", "value",
+			"-fourth", "value",
+		}))
 	})
 
 	context("when there is no buildpack.yml file", func() {
@@ -110,7 +117,12 @@ go:
 			targets, flags, err := parser.Parse(path)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(targets).To(Equal([]string{"./some/target1", "./some/target2"}))
-			Expect(flags).To(Equal([]string{"-first", "value", "-second", "value"}))
+			Expect(flags).To(Equal([]string{
+				"-first", "value",
+				"-second", "value",
+				"-third", "value",
+				"-fourth", "value",
+			}))
 		})
 	})
 
