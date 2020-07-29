@@ -161,7 +161,7 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 				Output:    filepath.Join(layerPath, "bin"),
 				GoCache:   goCache,
 				Targets:   []string{"."},
-				Flags:     []string{"-buildmode", "default", "-tags", "paketo", "-mod", "mod"},
+				Flags:     []string{"-buildmode", "default", "-ldflags", "-X main.variable=some-value", "-mod", "mod"},
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(command).To(Equal(filepath.Join(layerPath, "bin", "a_command")))
@@ -172,7 +172,7 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 				"build",
 				"-o", filepath.Join(layerPath, "bin"),
 				"-buildmode", "default",
-				"-tags", "paketo",
+				"-ldflags", "-X main.variable=some-value",
 				"-mod", "mod",
 				".",
 			}))
@@ -180,7 +180,7 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 			Expect(executable.ExecuteCall.Receives.Execution.Env).To(ContainElement(fmt.Sprintf("GOCACHE=%s", goCache)))
 
 			Expect(logs.String()).To(ContainSubstring("  Executing build process"))
-			Expect(logs.String()).To(ContainSubstring(fmt.Sprintf("    Running 'go build -o %s -buildmode default -tags paketo -mod mod .'", filepath.Join(layerPath, "bin"))))
+			Expect(logs.String()).To(ContainSubstring(fmt.Sprintf(`    Running 'go build -o %s -buildmode default -ldflags "-X main.variable=some-value" -mod mod .'`, filepath.Join(layerPath, "bin"))))
 			Expect(logs.String()).To(ContainSubstring("      Completed in 1s"))
 		})
 	})

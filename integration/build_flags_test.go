@@ -79,12 +79,13 @@ func testBuildFlags(t *testing.T, context spec.G, it spec.S) {
 			content, err := ioutil.ReadAll(response.Body)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(content)).To(ContainSubstring("go1.14"))
+			Expect(string(content)).To(ContainSubstring(`variable value: "some-value"`))
 			Expect(string(content)).To(ContainSubstring("/workspace contents: []"))
 
 			Expect(logs).To(ContainLines(
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
 				"  Executing build process",
-				fmt.Sprintf("    Running 'go build -o /layers/%s/targets/bin -buildmode default -tags paketo .'", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+				fmt.Sprintf("    Running 'go build -o /layers/%s/targets/bin -buildmode default -tags paketo -ldflags \"-X main.variable=some-value\" .'", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 				MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
 				"",
 				"  Assigning launch processes",
