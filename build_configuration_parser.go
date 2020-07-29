@@ -55,7 +55,7 @@ func (p BuildConfigurationParser) Parse(path string) ([]string, []string, error)
 
 	var buildFlags []string
 	for _, flag := range config.Go.Build.Flags {
-		buildFlags = append(buildFlags, strings.SplitN(flag, "=", 2)...)
+		buildFlags = append(buildFlags, splitFlags(flag)...)
 	}
 	config.Go.Build.Flags = buildFlags
 
@@ -71,4 +71,17 @@ func (p BuildConfigurationParser) Parse(path string) ([]string, []string, error)
 	}
 
 	return config.Go.Targets, config.Go.Build.Flags, nil
+}
+
+func splitFlags(flag string) []string {
+	parts := strings.SplitN(flag, "=", 2)
+	if len(parts) == 2 {
+		if len(parts[1]) >= 2 {
+			if c := parts[1][len(parts[1])-1]; parts[1][0] == c && (c == '"' || c == '\'') {
+				parts[1] = parts[1][1 : len(parts[1])-1]
+			}
+		}
+	}
+
+	return parts
 }

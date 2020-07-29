@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/paketo-buildpacks/packit/chronos"
 	"github.com/paketo-buildpacks/packit/pexec"
@@ -79,7 +81,11 @@ func (p GoBuildProcess) Execute(config GoBuildConfiguration) (string, error) {
 		env = append(env, fmt.Sprintf("GOPATH=%s", config.GoPath))
 	}
 
-	p.logs.Subprocess("Running '%s'", strings.Join(append([]string{"go"}, args...), " "))
+	printedArgs := []string{"go"}
+	for _, arg := range args {
+		printedArgs = append(printedArgs, formatArg(arg))
+	}
+	p.logs.Subprocess("Running '%s'", strings.Join(printedArgs, " "))
 
 	buffer := bytes.NewBuffer(nil)
 	duration, err := p.clock.Measure(func() error {
@@ -111,4 +117,14 @@ func (p GoBuildProcess) Execute(config GoBuildConfiguration) (string, error) {
 	}
 
 	return paths[0], nil
+}
+
+func formatArg(arg string) string {
+	for _, r := range arg {
+		if unicode.IsSpace(r) {
+			return strconv.Quote(arg)
+		}
+	}
+
+	return arg
 }
