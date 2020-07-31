@@ -48,14 +48,14 @@ func testGoPathManager(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("sets up the GOPATH", func() {
-			goPath, path, err := pathManager.Setup(workspacePath)
+			goPath, path, err := pathManager.Setup(workspacePath, "some/import/path")
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(goPath).NotTo(BeEmpty())
 			Expect(goPath).To(HavePrefix(tempDir))
 
 			Expect(path).To(HavePrefix(goPath))
-			Expect(path).To(HaveSuffix("/src/workspace"))
+			Expect(path).To(HaveSuffix("/src/some/import/path"))
 
 			Expect(filepath.Join(path, "some-file")).To(BeARegularFile())
 		})
@@ -66,7 +66,7 @@ func testGoPathManager(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("does not setup a GOPATH", func() {
-				goPath, path, err := pathManager.Setup(workspacePath)
+				goPath, path, err := pathManager.Setup(workspacePath, "some/import/path")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(path).To(Equal(workspacePath))
 
@@ -85,7 +85,7 @@ func testGoPathManager(t *testing.T, context spec.G, it spec.S) {
 				})
 
 				it("returns an error", func() {
-					_, _, err := pathManager.Setup(workspacePath)
+					_, _, err := pathManager.Setup(workspacePath, "some/import/path")
 					Expect(err).To(MatchError(ContainSubstring("failed to setup GOPATH:")))
 					Expect(err).To(MatchError(ContainSubstring("permission denied")))
 				})
@@ -97,7 +97,7 @@ func testGoPathManager(t *testing.T, context spec.G, it spec.S) {
 				})
 
 				it("returns an error", func() {
-					_, _, err := pathManager.Setup(workspacePath)
+					_, _, err := pathManager.Setup(workspacePath, "some/import/path")
 					Expect(err).To(MatchError(ContainSubstring("failed to copy application source onto GOPATH:")))
 					Expect(err).To(MatchError(ContainSubstring("permission denied")))
 				})

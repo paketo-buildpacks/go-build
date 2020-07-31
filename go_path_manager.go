@@ -19,7 +19,7 @@ func NewGoPathManager(tempDir string) GoPathManager {
 	}
 }
 
-func (m GoPathManager) Setup(workspace string) (string, string, error) {
+func (m GoPathManager) Setup(workspace, importPath string) (string, string, error) {
 	_, err := os.Stat(filepath.Join(workspace, "go.mod"))
 	if err == nil {
 		return "", workspace, nil
@@ -30,7 +30,11 @@ func (m GoPathManager) Setup(workspace string) (string, string, error) {
 		return "", "", fmt.Errorf("failed to setup GOPATH: %w", err)
 	}
 
-	appPath := filepath.Join(path, "src", "workspace")
+	if importPath == "" {
+		importPath = "workspace"
+	}
+
+	appPath := filepath.Join(path, "src", importPath)
 	err = os.MkdirAll(appPath, os.ModePerm)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to setup GOPATH: %w", err)

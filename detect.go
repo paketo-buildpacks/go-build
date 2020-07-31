@@ -8,17 +8,17 @@ import (
 
 //go:generate faux --interface ConfigurationParser --output fakes/configuration_parser.go
 type ConfigurationParser interface {
-	Parse(path string) (targets, flags []string, err error)
+	Parse(path string) (BuildConfiguration, error)
 }
 
 func Detect(parser ConfigurationParser) packit.DetectFunc {
 	return func(context packit.DetectContext) (packit.DetectResult, error) {
-		targets, _, err := parser.Parse(filepath.Join(context.WorkingDir, "buildpack.yml"))
+		configuration, err := parser.Parse(filepath.Join(context.WorkingDir, "buildpack.yml"))
 		if err != nil {
 			return packit.DetectResult{}, err
 		}
 
-		for _, target := range targets {
+		for _, target := range configuration.Targets {
 			files, err := filepath.Glob(filepath.Join(target, "*.go"))
 			if err != nil {
 				return packit.DetectResult{}, err

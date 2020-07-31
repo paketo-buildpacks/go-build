@@ -31,5 +31,18 @@ go:
   targets:
   - ./cmd/web-server
   - ./cmd/debug-server
-```
 
+  build:
+
+    # The go.build.flags property allows you to override the default build
+    # flags when compiling your program.
+    flags:
+    - -buildmode=default
+    - -tags=paketo
+    - -ldflags="-X main.variable=some-value"
+
+    # The go.build.import-path property allows you to specify an import path
+    # for your application. This is necessary if you are building a $GOPATH
+    # application that imports its own sub-packages.
+    import-path: example.com/some-app
+```

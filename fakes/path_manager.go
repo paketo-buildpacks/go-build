@@ -7,14 +7,15 @@ type PathManager struct {
 		sync.Mutex
 		CallCount int
 		Receives  struct {
-			Workspace string
+			Workspace  string
+			ImportPath string
 		}
 		Returns struct {
 			GoPath string
 			Path   string
 			Err    error
 		}
-		Stub func(string) (string, string, error)
+		Stub func(string, string) (string, string, error)
 	}
 	TeardownCall struct {
 		sync.Mutex
@@ -29,13 +30,14 @@ type PathManager struct {
 	}
 }
 
-func (f *PathManager) Setup(param1 string) (string, string, error) {
+func (f *PathManager) Setup(param1 string, param2 string) (string, string, error) {
 	f.SetupCall.Lock()
 	defer f.SetupCall.Unlock()
 	f.SetupCall.CallCount++
 	f.SetupCall.Receives.Workspace = param1
+	f.SetupCall.Receives.ImportPath = param2
 	if f.SetupCall.Stub != nil {
-		return f.SetupCall.Stub(param1)
+		return f.SetupCall.Stub(param1, param2)
 	}
 	return f.SetupCall.Returns.GoPath, f.SetupCall.Returns.Path, f.SetupCall.Returns.Err
 }

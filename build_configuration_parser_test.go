@@ -36,6 +36,7 @@ go:
     - -second=value
     - -third="value"
     - -fourth='value'
+    import-path: some-import-path
 `)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -51,14 +52,17 @@ go:
 	})
 
 	it("parses the targets and flags from a buildpack.yml", func() {
-		targets, flags, err := parser.Parse(path)
+		configuration, err := parser.Parse(path)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(targets).To(Equal([]string{"./first", "./second"}))
-		Expect(flags).To(Equal([]string{
-			"-first", "value",
-			"-second", "value",
-			"-third", "value",
-			"-fourth", "value",
+		Expect(configuration).To(Equal(gobuild.BuildConfiguration{
+			Targets: []string{"./first", "./second"},
+			Flags: []string{
+				"-first", "value",
+				"-second", "value",
+				"-third", "value",
+				"-fourth", "value",
+			},
+			ImportPath: "some-import-path",
 		}))
 	})
 
@@ -68,10 +72,10 @@ go:
 		})
 
 		it("returns a list of targets with . as the only target, and empty list of flags", func() {
-			targets, flags, err := parser.Parse(path)
+			configuration, err := parser.Parse(path)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(targets).To(Equal([]string{"."}))
-			Expect(flags).To(BeEmpty())
+			Expect(configuration.Targets).To(Equal([]string{"."}))
+			Expect(configuration.Flags).To(BeEmpty())
 		})
 
 		context("BP_GO_TARGETS env variable is set", func() {
@@ -84,10 +88,10 @@ go:
 			})
 
 			it("uses the values in the env var", func() {
-				targets, flags, err := parser.Parse(path)
+				configuration, err := parser.Parse(path)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(targets).To(Equal([]string{"./some/target1", "./some/target2"}))
-				Expect(flags).To(BeEmpty())
+				Expect(configuration.Targets).To(Equal([]string{"./some/target1", "./some/target2"}))
+				Expect(configuration.Flags).To(BeEmpty())
 			})
 		})
 	})
@@ -98,9 +102,9 @@ go:
 		})
 
 		it("returns a list of targets with . as the only target", func() {
-			targets, _, err := parser.Parse(path)
+			configuration, err := parser.Parse(path)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(targets).To(Equal([]string{"."}))
+			Expect(configuration.Targets).To(Equal([]string{"."}))
 		})
 	})
 
@@ -114,10 +118,10 @@ go:
 		})
 
 		it("replaces the targets list with the values in the env var", func() {
-			targets, flags, err := parser.Parse(path)
+			configuration, err := parser.Parse(path)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(targets).To(Equal([]string{"./some/target1", "./some/target2"}))
-			Expect(flags).To(Equal([]string{
+			Expect(configuration.Targets).To(Equal([]string{"./some/target1", "./some/target2"}))
+			Expect(configuration.Flags).To(Equal([]string{
 				"-first", "value",
 				"-second", "value",
 				"-third", "value",
@@ -133,7 +137,7 @@ go:
 			})
 
 			it("returns an error", func() {
-				_, _, err := parser.Parse(path)
+				_, err := parser.Parse(path)
 				Expect(err).To(MatchError(ContainSubstring("failed to read buildpack.yml:")))
 				Expect(err).To(MatchError(ContainSubstring("permission denied")))
 			})
@@ -145,7 +149,7 @@ go:
 			})
 
 			it("returns an error", func() {
-				_, _, err := parser.Parse(path)
+				_, err := parser.Parse(path)
 				Expect(err).To(MatchError(ContainSubstring("failed to decode buildpack.yml:")))
 				Expect(err).To(MatchError(ContainSubstring("could not find expected directive name")))
 			})
@@ -157,7 +161,7 @@ go:
 			})
 
 			it("returns an error", func() {
-				_, _, err := parser.Parse(path)
+				_, err := parser.Parse(path)
 				Expect(err).To(MatchError(ContainSubstring("failed to determine build targets: \"/some-target\" is an absolute path, targets must be relative to the source directory")))
 			})
 		})
