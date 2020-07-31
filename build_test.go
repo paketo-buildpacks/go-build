@@ -66,8 +66,11 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		logs = bytes.NewBuffer(nil)
 
 		parser = &fakes.ConfigurationParser{}
-		parser.ParseCall.Returns.Targets = []string{"some-target", "other-target"}
-		parser.ParseCall.Returns.Flags = []string{"some-flag", "other-flag"}
+		parser.ParseCall.Returns.BuildConfiguration = gobuild.BuildConfiguration{
+			Targets:    []string{"some-target", "other-target"},
+			Flags:      []string{"some-flag", "other-flag"},
+			ImportPath: "some-import-path",
+		}
 
 		sourceRemover = &fakes.SourceRemover{}
 
@@ -143,6 +146,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		Expect(parser.ParseCall.Receives.Path).To(Equal(filepath.Join(workingDir, "buildpack.yml")))
 
 		Expect(pathManager.SetupCall.Receives.Workspace).To(Equal(workingDir))
+		Expect(pathManager.SetupCall.Receives.ImportPath).To(Equal("some-import-path"))
 
 		Expect(buildProcess.ExecuteCall.Receives.Config).To(Equal(gobuild.GoBuildConfiguration{
 			Workspace: "some-app-path",
@@ -343,7 +347,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 		context("when the configuration cannot be parsed", func() {
 			it.Before(func() {
-				parser.ParseCall.Returns.Err = errors.New("failed to parse configuration")
+				parser.ParseCall.Returns.Error = errors.New("failed to parse configuration")
 			})
 
 			it("returns an error", func() {

@@ -16,7 +16,7 @@ type BuildProcess interface {
 
 //go:generate faux --interface PathManager --output fakes/path_manager.go
 type PathManager interface {
-	Setup(workspace string) (goPath, path string, err error)
+	Setup(workspace, importPath string) (goPath, path string, err error)
 	Teardown(goPath string) error
 }
 
@@ -60,12 +60,12 @@ func Build(
 
 		previousSum, _ := targetsLayer.Metadata[WorkspaceSHAKey].(string)
 		if checksum != previousSum {
-			targets, flags, err := parser.Parse(filepath.Join(context.WorkingDir, "buildpack.yml"))
+			configuration, err := parser.Parse(filepath.Join(context.WorkingDir, "buildpack.yml"))
 			if err != nil {
 				return packit.BuildResult{}, err
 			}
 
-			goPath, path, err := pathManager.Setup(context.WorkingDir)
+			goPath, path, err := pathManager.Setup(context.WorkingDir, configuration.ImportPath)
 			if err != nil {
 				return packit.BuildResult{}, err
 			}
@@ -75,8 +75,8 @@ func Build(
 				Output:    filepath.Join(targetsLayer.Path, "bin"),
 				GoPath:    goPath,
 				GoCache:   goCacheLayer.Path,
-				Flags:     flags,
-				Targets:   targets,
+				Flags:     configuration.Flags,
+				Targets:   configuration.Targets,
 			})
 			if err != nil {
 				return packit.BuildResult{}, err

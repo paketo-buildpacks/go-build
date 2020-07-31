@@ -33,7 +33,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		Expect(ioutil.WriteFile(filepath.Join(workingDir, "main.go"), nil, 0644)).To(Succeed())
 
 		parser = &fakes.ConfigurationParser{}
-		parser.ParseCall.Returns.Targets = []string{workingDir}
+		parser.ParseCall.Returns.BuildConfiguration.Targets = []string{workingDir}
 
 		detect = gobuild.Detect(parser)
 	})
@@ -71,7 +71,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 			Expect(ioutil.WriteFile(filepath.Join(workingDir, "first", "main.go"), nil, 0644)).To(Succeed())
 			Expect(ioutil.WriteFile(filepath.Join(workingDir, "second", "main.go"), nil, 0644)).To(Succeed())
 
-			parser.ParseCall.Returns.Targets = []string{
+			parser.ParseCall.Returns.BuildConfiguration.Targets = []string{
 				filepath.Join(workingDir, "first"),
 				filepath.Join(workingDir, "second"),
 			}
@@ -113,7 +113,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 	context("failure cases", func() {
 		context("when the configuration parser fails", func() {
 			it.Before(func() {
-				parser.ParseCall.Returns.Err = errors.New("failed to parse configuration")
+				parser.ParseCall.Returns.Error = errors.New("failed to parse configuration")
 			})
 
 			it("returns an error", func() {
@@ -126,7 +126,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 
 		context("when file glob fails", func() {
 			it.Before(func() {
-				parser.ParseCall.Returns.Targets = []string{`\`}
+				parser.ParseCall.Returns.BuildConfiguration.Targets = []string{`\`}
 			})
 
 			it("returns an error", func() {

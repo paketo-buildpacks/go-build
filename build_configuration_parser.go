@@ -10,13 +10,19 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type BuildConfiguration struct {
+	Targets    []string
+	Flags      []string
+	ImportPath string
+}
+
 type BuildConfigurationParser struct{}
 
 func NewBuildConfigurationParser() BuildConfigurationParser {
 	return BuildConfigurationParser{}
 }
 
-func (p BuildConfigurationParser) Parse(path string) ([]string, []string, error) {
+func (p BuildConfigurationParser) Parse(path string) (BuildConfiguration, error) {
 	var targets []string
 	if len(os.Getenv("BP_GO_TARGETS")) > 0 {
 		targets = strings.Split(os.Getenv("BP_GO_TARGETS"), ":")
@@ -29,24 +35,25 @@ func (p BuildConfigurationParser) Parse(path string) ([]string, []string, error)
 				targets = []string{"."}
 			}
 
-			return targets, nil, nil
+			return BuildConfiguration{Targets: targets}, nil
 		}
 
-		return nil, nil, fmt.Errorf("failed to read buildpack.yml: %w", err)
+		return BuildConfiguration{}, fmt.Errorf("failed to read buildpack.yml: %w", err)
 	}
 
 	var config struct {
 		Go struct {
 			Targets []string `yaml:"targets"`
 			Build   struct {
-				Flags []string `yaml:"flags"`
+				Flags      []string `yaml:"flags"`
+				ImportPath string   `yaml:"import-path"`
 			} `yaml:"build"`
 		} `yaml:"go"`
 	}
 
 	err = yaml.NewDecoder(file).Decode(&config)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to decode buildpack.yml: %w", err)
+		return BuildConfiguration{}, fmt.Errorf("failed to decode buildpack.yml: %w", err)
 	}
 
 	if len(targets) > 0 {
@@ -61,7 +68,7 @@ func (p BuildConfigurationParser) Parse(path string) ([]string, []string, error)
 
 	for index, target := range config.Go.Targets {
 		if strings.HasPrefix(target, string(filepath.Separator)) {
-			return nil, nil, fmt.Errorf("failed to determine build targets: %q is an absolute path, targets must be relative to the source directory", target)
+			return BuildConfiguration{}, fmt.Errorf("failed to determine build targets: %q is an absolute path, targets must be relative to the source directory", target)
 		}
 		config.Go.Targets[index] = fmt.Sprintf("./%s", filepath.Clean(target))
 	}
@@ -70,7 +77,11 @@ func (p BuildConfigurationParser) Parse(path string) ([]string, []string, error)
 		config.Go.Targets = []string{"."}
 	}
 
-	return config.Go.Targets, config.Go.Build.Flags, nil
+	return BuildConfiguration{
+		Targets:    config.Go.Targets,
+		Flags:      config.Go.Build.Flags,
+		ImportPath: config.Go.Build.ImportPath,
+	}, nil
 }
 
 func splitFlags(flag string) []string {

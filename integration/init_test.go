@@ -82,6 +82,7 @@ func TestIntegration(t *testing.T) {
 	suite("BuildFailure", testBuildFailure)
 	suite("BuildFlags", testBuildFlags)
 	suite("Default", testDefault)
+	suite("ImportPath", testImportPath)
 	suite("LayerReuse", testLayerReuse)
 	suite("Mod", testMod)
 	suite("Targets", testTargets)
