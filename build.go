@@ -92,6 +92,9 @@ func Build(
 				"built_at":      clock.Now().Format(time.RFC3339Nano),
 				"command":       command,
 			}
+		} else {
+			logs.Process("Reusing cached layer %s", targetsLayer.Path)
+			logs.Break()
 		}
 
 		command, ok := targetsLayer.Metadata["command"].(string)

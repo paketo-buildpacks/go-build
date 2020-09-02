@@ -226,6 +226,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Expect(pathManager.SetupCall.CallCount).To(Equal(0))
 			Expect(buildProcess.ExecuteCall.CallCount).To(Equal(0))
 			Expect(pathManager.TeardownCall.CallCount).To(Equal(0))
+
+			Expect(logs.String()).To(ContainSubstring("Reusing cached layer"))
 		})
 	})
 
