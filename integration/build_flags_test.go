@@ -23,35 +23,31 @@ func testBuildFlags(t *testing.T, context spec.G, it spec.S) {
 
 		pack   occam.Pack
 		docker occam.Docker
+
+		image     occam.Image
+		container occam.Container
+
+		name   string
+		source string
 	)
 
 	it.Before(func() {
 		pack = occam.NewPack().WithVerbose().WithNoColor()
 		docker = occam.NewDocker()
+
+		var err error
+		name, err = occam.RandomName()
+		Expect(err).NotTo(HaveOccurred())
 	})
 
-	context("when building a simple app with no dependencies", func() {
-		var (
-			image     occam.Image
-			container occam.Container
+	it.After(func() {
+		Expect(docker.Container.Remove.Execute(container.ID)).To(Succeed())
+		Expect(docker.Volume.Remove.Execute(occam.CacheVolumeNames(name))).To(Succeed())
+		Expect(docker.Image.Remove.Execute(image.ID)).To(Succeed())
+		Expect(os.RemoveAll(source)).To(Succeed())
+	})
 
-			name   string
-			source string
-		)
-
-		it.Before(func() {
-			var err error
-			name, err = occam.RandomName()
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		it.After(func() {
-			Expect(docker.Container.Remove.Execute(container.ID)).To(Succeed())
-			Expect(docker.Volume.Remove.Execute(occam.CacheVolumeNames(name))).To(Succeed())
-			Expect(docker.Image.Remove.Execute(image.ID)).To(Succeed())
-			Expect(os.RemoveAll(source)).To(Succeed())
-		})
-
+	context("when building a simple app with build flags", func() {
 		it("builds successfully", func() {
 			var err error
 			source, err = occam.Source(filepath.Join("testdata", "build_flags"))
@@ -86,6 +82,50 @@ func testBuildFlags(t *testing.T, context spec.G, it spec.S) {
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
 				"  Executing build process",
 				fmt.Sprintf("    Running 'go build -o /layers/%s/targets/bin -buildmode default -tags paketo -ldflags \"-X main.variable=some-value\" .'", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+				MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
+				"",
+				"  Assigning launch processes",
+				fmt.Sprintf("    web: /layers/%s/targets/bin/workspace", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+			))
+		})
+	})
+
+	context("when building a simple app with build flags with env var interpolation", func() {
+		it("builds successfully", func() {
+			var err error
+			source, err = occam.Source(filepath.Join("testdata", "build_flags_with_env_var"))
+			Expect(err).NotTo(HaveOccurred())
+
+			var logs fmt.Stringer
+			image, logs, err = pack.Build.
+				WithNoPull().
+				WithBuildpacks(
+					settings.Buildpacks.GoDist.Online,
+					settings.Buildpacks.GoBuild.Online,
+				).
+				WithEnv(map[string]string{"SOME_VALUE": "env-value"}).
+				Execute(name, source)
+			Expect(err).ToNot(HaveOccurred(), logs.String)
+
+			container, err = docker.Container.Run.Execute(image.ID)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(container).Should(BeAvailable())
+
+			response, err := http.Get(fmt.Sprintf("http://localhost:%s", container.HostPort()))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+			content, err := ioutil.ReadAll(response.Body)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(content)).To(ContainSubstring("go1.14"))
+			Expect(string(content)).To(ContainSubstring(`variable value: "env-value"`))
+			Expect(string(content)).To(ContainSubstring("/workspace contents: []"))
+
+			Expect(logs).To(ContainLines(
+				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
+				"  Executing build process",
+				fmt.Sprintf("    Running 'go build -o /layers/%s/targets/bin -buildmode default -tags paketo -ldflags \"-X main.variable=env-value\" .'", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 				MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
 				"",
 				"  Assigning launch processes",
