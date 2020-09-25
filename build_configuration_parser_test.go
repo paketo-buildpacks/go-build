@@ -108,24 +108,33 @@ go:
 		})
 	})
 
-	context("BP_GO_TARGETS env variable is set", func() {
+	context("when the build flags reference an env var", func() {
 		it.Before(func() {
-			os.Setenv("BP_GO_TARGETS", "./some/target1:./some/target2")
+			err := ioutil.WriteFile(path, []byte(`---
+go:
+  build:
+    flags:
+    - -first=${SOME_VALUE}
+    - -second=$SOME_OTHER_VALUE
+`), 0644)
+
+			Expect(err).NotTo(HaveOccurred())
+
+			os.Setenv("SOME_VALUE", "some-value")
+			os.Setenv("SOME_OTHER_VALUE", "some-other-value")
 		})
 
 		it.After(func() {
-			os.Unsetenv("BP_GO_TARGETS")
+			os.Unsetenv("SOME_VALUE")
+			os.Unsetenv("SOME_OTHER_VALUE")
 		})
 
 		it("replaces the targets list with the values in the env var", func() {
 			configuration, err := parser.Parse(path)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(configuration.Targets).To(Equal([]string{"./some/target1", "./some/target2"}))
 			Expect(configuration.Flags).To(Equal([]string{
-				"-first", "value",
-				"-second", "value",
-				"-third", "value",
-				"-fourth", "value",
+				"-first", "some-value",
+				"-second", "some-other-value",
 			}))
 		})
 	})
@@ -143,7 +152,7 @@ go:
 			})
 		})
 
-		context("when the buildpack.yml file cannot be read", func() {
+		context("when the buildpack.yml file cannot be parsed", func() {
 			it.Before(func() {
 				Expect(ioutil.WriteFile(path, []byte("%%%"), 0644)).To(Succeed())
 			})
@@ -152,6 +161,17 @@ go:
 				_, err := parser.Parse(path)
 				Expect(err).To(MatchError(ContainSubstring("failed to decode buildpack.yml:")))
 				Expect(err).To(MatchError(ContainSubstring("could not find expected directive name")))
+			})
+		})
+
+		context("when a the env var expansion fails", func() {
+			it.Before(func() {
+				Expect(ioutil.WriteFile(path, []byte("---\ngo:\n  build:\n    flags:\n    - -first=$& \n"), 0644)).To(Succeed())
+			})
+
+			it("returns an error", func() {
+				_, err := parser.Parse(path)
+				Expect(err).To(MatchError(ContainSubstring("environment variable expansion failed:")))
 			})
 		})
 

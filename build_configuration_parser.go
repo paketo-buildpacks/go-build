@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/buildkite/interpolate"
 	"gopkg.in/yaml.v2"
 )
 
@@ -60,9 +61,17 @@ func (p BuildConfigurationParser) Parse(path string) (BuildConfiguration, error)
 		config.Go.Targets = targets
 	}
 
+	env := interpolate.NewSliceEnv(os.Environ())
+
 	var buildFlags []string
 	for _, flag := range config.Go.Build.Flags {
-		buildFlags = append(buildFlags, splitFlags(flag)...)
+		for _, f := range splitFlags(flag) {
+			interpolatedFlag, err := interpolate.Interpolate(env, f)
+			if err != nil {
+				return BuildConfiguration{}, fmt.Errorf("environment variable expansion failed: %w", err)
+			}
+			buildFlags = append(buildFlags, interpolatedFlag)
+		}
 	}
 	config.Go.Build.Flags = buildFlags
 
