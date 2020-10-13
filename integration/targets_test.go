@@ -78,7 +78,7 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 
 			content, err := ioutil.ReadAll(response.Body)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(string(content)).To(ContainSubstring("first: go1.14"))
+			Expect(string(content)).To(ContainSubstring("first: go1.15"))
 
 			Expect(logs).To(ContainLines(
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
@@ -116,7 +116,7 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 
 				content, err := ioutil.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(string(content)).To(ContainSubstring("third: go1.14"))
+				Expect(string(content)).To(ContainSubstring("third: go1.15"))
 
 				Expect(logs).To(ContainLines(
 					MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
@@ -158,7 +158,7 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 
 					content, err := ioutil.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(string(content)).To(ContainSubstring("second: go1.14"))
+					Expect(string(content)).To(ContainSubstring("second: go1.15"))
 
 					Expect(logs).To(ContainLines(
 						MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),

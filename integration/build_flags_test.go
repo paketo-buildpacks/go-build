@@ -74,7 +74,7 @@ func testBuildFlags(t *testing.T, context spec.G, it spec.S) {
 
 			content, err := ioutil.ReadAll(response.Body)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(string(content)).To(ContainSubstring("go1.14"))
+			Expect(string(content)).To(ContainSubstring("go1.15"))
 			Expect(string(content)).To(ContainSubstring(`variable value: "some-value"`))
 			Expect(string(content)).To(ContainSubstring("/workspace contents: []"))
 
@@ -118,7 +118,7 @@ func testBuildFlags(t *testing.T, context spec.G, it spec.S) {
 
 			content, err := ioutil.ReadAll(response.Body)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(string(content)).To(ContainSubstring("go1.14"))
+			Expect(string(content)).To(ContainSubstring("go1.15"))
 			Expect(string(content)).To(ContainSubstring(`variable value: "env-value"`))
 			Expect(string(content)).To(ContainSubstring("/workspace contents: []"))
 

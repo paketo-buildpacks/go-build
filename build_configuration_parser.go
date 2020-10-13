@@ -25,8 +25,8 @@ func NewBuildConfigurationParser() BuildConfigurationParser {
 
 func (p BuildConfigurationParser) Parse(path string) (BuildConfiguration, error) {
 	var targets []string
-	if len(os.Getenv("BP_GO_TARGETS")) > 0 {
-		targets = strings.Split(os.Getenv("BP_GO_TARGETS"), ":")
+	if val, ok := os.LookupEnv("BP_GO_TARGETS"); ok {
+		targets = filepath.SplitList(val)
 	}
 
 	file, err := os.Open(path)
