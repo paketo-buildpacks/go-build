@@ -59,7 +59,7 @@ func testMod(t *testing.T, context spec.G, it spec.S) {
 
 			var logs fmt.Stringer
 			image, logs, err = pack.Build.
-				WithNoPull().
+				WithPullPolicy("never").
 				WithBuildpacks(
 					settings.Buildpacks.GoDist.Online,
 					settings.Buildpacks.GoBuild.Online,
@@ -121,7 +121,7 @@ func testMod(t *testing.T, context spec.G, it spec.S) {
 
 			var logs fmt.Stringer
 			image, logs, err = pack.Build.
-				WithNoPull().
+				WithPullPolicy("never").
 				WithNetwork("none").
 				WithBuildpacks(
 					settings.Buildpacks.GoDist.Offline,
