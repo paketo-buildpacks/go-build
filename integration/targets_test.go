@@ -59,7 +59,7 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 			var err error
 			var logs fmt.Stringer
 			image, logs, err = pack.Build.
-				WithNoPull().
+				WithPullPolicy("never").
 				WithBuildpacks(
 					settings.Buildpacks.GoDist.Online,
 					settings.Buildpacks.GoBuild.Online,
@@ -96,7 +96,7 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 				var err error
 				var logs fmt.Stringer
 				image, logs, err = pack.Build.
-					WithNoPull().
+					WithPullPolicy("never").
 					WithEnv(map[string]string{"BP_GO_TARGETS": "./third"}).
 					WithBuildpacks(
 						settings.Buildpacks.GoDist.Online,
@@ -138,7 +138,7 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 					var err error
 					var logs fmt.Stringer
 					image, logs, err = pack.Build.
-						WithNoPull().
+						WithPullPolicy("never").
 						WithEnv(map[string]string{"BP_GO_TARGETS": "./second"}).
 						WithBuildpacks(
 							settings.Buildpacks.GoDist.Online,
