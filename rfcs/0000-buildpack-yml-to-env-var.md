@@ -15,8 +15,8 @@ There are several reasons for making this switch.
    Paketo Java buildpacks. Making this change will align the buildpack with the
    rest of the buildpack ecosystem.
 1. There is native support to pass environment variables to the buildpack
-   either on a per run basis or by check configuration, in the form of
-   `project.toml`, into source control.
+   either on a per run basis or by configuration that can be checked into
+   source control, in the form of `project.toml`.
 
 ## Implementation
 
