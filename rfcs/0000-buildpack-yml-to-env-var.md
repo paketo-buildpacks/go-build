@@ -56,7 +56,7 @@ go:
 #### BP_GO_TARGETS
 
 ```shell
-$BP_GO_TARGETS=./first:./second
+$BP_GO_TARGETS=./cmd/web-server:./cmd/debug-server
 ```
 
 This will replace the following structure in `buildpack.yml`:
