@@ -14,6 +14,7 @@ func TestUnitGoBuild(t *testing.T) {
 	suite("Detect", testDetect)
 	suite("GoBuildProcess", testGoBuildProcess)
 	suite("GoPathManager", testGoPathManager)
+	suite("GoTargetManager", testGoTargetManager)
 	suite("SourceDeleter", testSourceDeleter)
 	suite.Run(t)
 }

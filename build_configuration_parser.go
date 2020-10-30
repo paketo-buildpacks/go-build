@@ -11,31 +11,48 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+//go:generate faux --interface TargetManager --output fakes/target_manager.go
+type TargetManager interface {
+	CleanAndValidate(targets []string, workingDir string) ([]string, error)
+	GenerateDefaults(workingDir string) ([]string, error)
+}
+
 type BuildConfiguration struct {
 	Targets    []string
 	Flags      []string
 	ImportPath string
 }
 
-type BuildConfigurationParser struct{}
-
-func NewBuildConfigurationParser() BuildConfigurationParser {
-	return BuildConfigurationParser{}
+type BuildConfigurationParser struct {
+	targetManager TargetManager
 }
 
-func (p BuildConfigurationParser) Parse(path string) (BuildConfiguration, error) {
+func NewBuildConfigurationParser(targetManager TargetManager) BuildConfigurationParser {
+	return BuildConfigurationParser{
+		targetManager: targetManager,
+	}
+}
+
+func (p BuildConfigurationParser) Parse(workingDir string) (BuildConfiguration, error) {
 	var targets []string
 	if val, ok := os.LookupEnv("BP_GO_TARGETS"); ok {
 		targets = filepath.SplitList(val)
 	}
 
-	file, err := os.Open(path)
+	file, err := os.Open(filepath.Join(workingDir, "buildpack.yml"))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			if len(targets) == 0 {
-				targets = []string{"."}
+				targets, err = p.targetManager.GenerateDefaults(workingDir)
+				if err != nil {
+					return BuildConfiguration{}, err
+				}
+			} else {
+				targets, err = p.targetManager.CleanAndValidate(targets, workingDir)
+				if err != nil {
+					return BuildConfiguration{}, err
+				}
 			}
-
 			return BuildConfiguration{Targets: targets}, nil
 		}
 
@@ -57,8 +74,24 @@ func (p BuildConfigurationParser) Parse(path string) (BuildConfiguration, error)
 		return BuildConfiguration{}, fmt.Errorf("failed to decode buildpack.yml: %w", err)
 	}
 
+	// This will use targets that it got from the env var over the targests set in buildpack.yml
 	if len(targets) > 0 {
-		config.Go.Targets = targets
+		config.Go.Targets, err = p.targetManager.CleanAndValidate(targets, workingDir)
+		if err != nil {
+			return BuildConfiguration{}, err
+		}
+	} else {
+		config.Go.Targets, err = p.targetManager.CleanAndValidate(config.Go.Targets, workingDir)
+		if err != nil {
+			return BuildConfiguration{}, err
+		}
+	}
+
+	if len(config.Go.Targets) == 0 {
+		config.Go.Targets, err = p.targetManager.GenerateDefaults(workingDir)
+		if err != nil {
+			return BuildConfiguration{}, err
+		}
 	}
 
 	env := interpolate.NewSliceEnv(os.Environ())
@@ -74,17 +107,6 @@ func (p BuildConfigurationParser) Parse(path string) (BuildConfiguration, error)
 		}
 	}
 	config.Go.Build.Flags = buildFlags
-
-	for index, target := range config.Go.Targets {
-		if strings.HasPrefix(target, string(filepath.Separator)) {
-			return BuildConfiguration{}, fmt.Errorf("failed to determine build targets: %q is an absolute path, targets must be relative to the source directory", target)
-		}
-		config.Go.Targets[index] = fmt.Sprintf("./%s", filepath.Clean(target))
-	}
-
-	if len(config.Go.Targets) == 0 {
-		config.Go.Targets = []string{"."}
-	}
 
 	return BuildConfiguration{
 		Targets:    config.Go.Targets,

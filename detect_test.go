@@ -2,8 +2,6 @@ package gobuild_test
 
 import (
 	"errors"
-	"io/ioutil"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -26,20 +24,12 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 	)
 
 	it.Before(func() {
-		var err error
-		workingDir, err = ioutil.TempDir("", "working-dir")
-		Expect(err).NotTo(HaveOccurred())
-
-		Expect(ioutil.WriteFile(filepath.Join(workingDir, "main.go"), nil, 0644)).To(Succeed())
+		workingDir = "working-dir"
 
 		parser = &fakes.ConfigurationParser{}
 		parser.ParseCall.Returns.BuildConfiguration.Targets = []string{workingDir}
 
 		detect = gobuild.Detect(parser)
-	})
-
-	it.After(func() {
-		Expect(os.RemoveAll(workingDir)).To(Succeed())
 	})
 
 	it("detects", func() {
@@ -48,6 +38,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.Plan).To(Equal(packit.BuildPlan{
+			Provides: []packit.BuildPlanProvision{{Name: "go-build"}},
 			Requires: []packit.BuildPlanRequirement{
 				{
 					Name: "go",
@@ -55,22 +46,86 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 						"build": true,
 					},
 				},
+				{
+					Name: "go-build",
+					Metadata: map[string]interface{}{
+						"targets": []string{workingDir},
+					},
+				},
 			},
 		}))
 
-		Expect(parser.ParseCall.Receives.Path).To(Equal(filepath.Join(workingDir, "buildpack.yml")))
+		Expect(parser.ParseCall.Receives.WorkingDir).To(Equal(workingDir))
+	})
+
+	context("when flags are set in the build configuration", func() {
+		it.Before(func() {
+			parser.ParseCall.Returns.BuildConfiguration.Flags = []string{"-some-flag=flag"}
+		})
+
+		it("adds flags to the build plan", func() {
+			result, err := detect(packit.DetectContext{
+				WorkingDir: workingDir,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Plan).To(Equal(packit.BuildPlan{
+				Provides: []packit.BuildPlanProvision{{Name: "go-build"}},
+				Requires: []packit.BuildPlanRequirement{
+					{
+						Name: "go",
+						Metadata: map[string]interface{}{
+							"build": true,
+						},
+					},
+					{
+						Name: "go-build",
+						Metadata: map[string]interface{}{
+							"targets": []string{workingDir},
+							"flags":   []string{"-some-flag=flag"},
+						},
+					},
+				},
+			}))
+
+			Expect(parser.ParseCall.Receives.WorkingDir).To(Equal(workingDir))
+		})
+	})
+
+	context("when import path are set in the build configuration", func() {
+		it.Before(func() {
+			parser.ParseCall.Returns.BuildConfiguration.ImportPath = "./some/path"
+		})
+
+		it("adds import-path to the build plan", func() {
+			result, err := detect(packit.DetectContext{
+				WorkingDir: workingDir,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Plan).To(Equal(packit.BuildPlan{
+				Provides: []packit.BuildPlanProvision{{Name: "go-build"}},
+				Requires: []packit.BuildPlanRequirement{
+					{
+						Name: "go",
+						Metadata: map[string]interface{}{
+							"build": true,
+						},
+					},
+					{
+						Name: "go-build",
+						Metadata: map[string]interface{}{
+							"targets":     []string{workingDir},
+							"import-path": "./some/path",
+						},
+					},
+				},
+			}))
+
+			Expect(parser.ParseCall.Receives.WorkingDir).To(Equal(workingDir))
+		})
 	})
 
 	context("when there are multiple targets", func() {
 		it.Before(func() {
-			Expect(os.Remove(filepath.Join(workingDir, "main.go"))).To(Succeed())
-
-			Expect(os.Mkdir(filepath.Join(workingDir, "first"), os.ModePerm)).To(Succeed())
-			Expect(os.Mkdir(filepath.Join(workingDir, "second"), os.ModePerm)).To(Succeed())
-
-			Expect(ioutil.WriteFile(filepath.Join(workingDir, "first", "main.go"), nil, 0644)).To(Succeed())
-			Expect(ioutil.WriteFile(filepath.Join(workingDir, "second", "main.go"), nil, 0644)).To(Succeed())
-
 			parser.ParseCall.Returns.BuildConfiguration.Targets = []string{
 				filepath.Join(workingDir, "first"),
 				filepath.Join(workingDir, "second"),
@@ -83,6 +138,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Plan).To(Equal(packit.BuildPlan{
+				Provides: []packit.BuildPlanProvision{{Name: "go-build"}},
 				Requires: []packit.BuildPlanRequirement{
 					{
 						Name: "go",
@@ -90,23 +146,32 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 							"build": true,
 						},
 					},
+					{
+						Name: "go-build",
+						Metadata: map[string]interface{}{
+							"targets": []string{
+								filepath.Join(workingDir, "first"),
+								filepath.Join(workingDir, "second"),
+							},
+						},
+					},
 				},
 			}))
 
-			Expect(parser.ParseCall.Receives.Path).To(Equal(filepath.Join(workingDir, "buildpack.yml")))
+			Expect(parser.ParseCall.Receives.WorkingDir).To(Equal(workingDir))
 		})
 	})
 
 	context("when there are no *.go files in the working directory", func() {
 		it.Before(func() {
-			Expect(os.Remove(filepath.Join(workingDir, "main.go"))).To(Succeed())
+			parser.ParseCall.Returns.Error = errors.New("no *.go files found")
 		})
 
 		it("fails detection", func() {
 			_, err := detect(packit.DetectContext{
 				WorkingDir: workingDir,
 			})
-			Expect(err).To(MatchError(packit.Fail))
+			Expect(err).To(MatchError(ContainSubstring("failed to parse build configuration: no *.go files found")))
 		})
 	})
 
@@ -120,20 +185,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 				_, err := detect(packit.DetectContext{
 					WorkingDir: workingDir,
 				})
-				Expect(err).To(MatchError("failed to parse configuration"))
-			})
-		})
-
-		context("when file glob fails", func() {
-			it.Before(func() {
-				parser.ParseCall.Returns.BuildConfiguration.Targets = []string{`\`}
-			})
-
-			it("returns an error", func() {
-				_, err := detect(packit.DetectContext{
-					WorkingDir: workingDir,
-				})
-				Expect(err).To(MatchError(ContainSubstring("syntax error in pattern")))
+				Expect(err).To(MatchError(ContainSubstring("failed to parse configuration")))
 			})
 		})
 	})

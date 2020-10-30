@@ -29,7 +29,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		buildProcess  *fakes.BuildProcess
 		pathManager   *fakes.PathManager
 		calculator    *fakes.ChecksumCalculator
-		parser        *fakes.ConfigurationParser
 		logs          *bytes.Buffer
 		timestamp     time.Time
 		sourceRemover *fakes.SourceRemover
@@ -65,13 +64,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 		logs = bytes.NewBuffer(nil)
 
-		parser = &fakes.ConfigurationParser{}
-		parser.ParseCall.Returns.BuildConfiguration = gobuild.BuildConfiguration{
-			Targets:    []string{"some-target", "other-target"},
-			Flags:      []string{"some-flag", "other-flag"},
-			ImportPath: "some-import-path",
-		}
-
 		sourceRemover = &fakes.SourceRemover{}
 
 		build = gobuild.Build(
@@ -80,7 +72,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			clock,
 			calculator,
 			gobuild.NewLogEmitter(logs),
-			parser,
 			sourceRemover,
 		)
 	})
@@ -101,10 +92,34 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 				Version: "some-version",
 			},
 			Layers: packit.Layers{Path: layersDir},
+			Plan: packit.BuildpackPlan{
+				Entries: []packit.BuildpackPlanEntry{
+					{
+						Name: "go-build",
+						Metadata: map[string]interface{}{
+							"targets":     []interface{}{"some-target", "other-target"},
+							"flags":       []interface{}{"some-flag", "other-flag"},
+							"import-path": "some-import-path",
+						},
+					},
+				},
+			},
 		})
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(result).To(Equal(packit.BuildResult{
+			Plan: packit.BuildpackPlan{
+				Entries: []packit.BuildpackPlanEntry{
+					{
+						Name: "go-build",
+						Metadata: map[string]interface{}{
+							"targets":     []interface{}{"some-target", "other-target"},
+							"flags":       []interface{}{"some-flag", "other-flag"},
+							"import-path": "some-import-path",
+						},
+					},
+				},
+			},
 			Layers: []packit.Layer{
 				{
 					Name:      "targets",
@@ -143,8 +158,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 		Expect(calculator.SumCall.Receives.Path).To(Equal(workingDir))
 
-		Expect(parser.ParseCall.Receives.Path).To(Equal(filepath.Join(workingDir, "buildpack.yml")))
-
 		Expect(pathManager.SetupCall.Receives.Workspace).To(Equal(workingDir))
 		Expect(pathManager.SetupCall.Receives.ImportPath).To(Equal("some-import-path"))
 
@@ -182,10 +195,30 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Version: "some-version",
 				},
 				Layers: packit.Layers{Path: layersDir},
+				Plan: packit.BuildpackPlan{
+					Entries: []packit.BuildpackPlanEntry{
+						{
+							Name: "go-build",
+							Metadata: map[string]interface{}{
+								"targets": []interface{}{"some-target", "other-target"},
+							},
+						},
+					},
+				},
 			})
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(result).To(Equal(packit.BuildResult{
+				Plan: packit.BuildpackPlan{
+					Entries: []packit.BuildpackPlanEntry{
+						{
+							Name: "go-build",
+							Metadata: map[string]interface{}{
+								"targets": []interface{}{"some-target", "other-target"},
+							},
+						},
+					},
+				},
 				Layers: []packit.Layer{
 					{
 						Name:      "targets",
@@ -242,10 +275,30 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Version: "some-version",
 				},
 				Layers: packit.Layers{Path: layersDir},
+				Plan: packit.BuildpackPlan{
+					Entries: []packit.BuildpackPlanEntry{
+						{
+							Name: "go-build",
+							Metadata: map[string]interface{}{
+								"targets": []interface{}{"some-target", "other-target"},
+							},
+						},
+					},
+				},
 			})
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(result).To(Equal(packit.BuildResult{
+				Plan: packit.BuildpackPlan{
+					Entries: []packit.BuildpackPlanEntry{
+						{
+							Name: "go-build",
+							Metadata: map[string]interface{}{
+								"targets": []interface{}{"some-target", "other-target"},
+							},
+						},
+					},
+				},
 				Layers: []packit.Layer{
 					{
 						Name:      "targets",
@@ -300,6 +353,16 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						Version: "some-version",
 					},
 					Layers: packit.Layers{Path: layersDir},
+					Plan: packit.BuildpackPlan{
+						Entries: []packit.BuildpackPlanEntry{
+							{
+								Name: "go-build",
+								Metadata: map[string]interface{}{
+									"targets": []interface{}{"some-target", "other-target"},
+								},
+							},
+						},
+					},
 				})
 				Expect(err).To(MatchError(ContainSubstring("failed to parse layer content metadata")))
 				Expect(err).To(MatchError(ContainSubstring("permission denied")))
@@ -321,6 +384,16 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						Version: "some-version",
 					},
 					Layers: packit.Layers{Path: layersDir},
+					Plan: packit.BuildpackPlan{
+						Entries: []packit.BuildpackPlanEntry{
+							{
+								Name: "go-build",
+								Metadata: map[string]interface{}{
+									"targets": []interface{}{"some-target", "other-target"},
+								},
+							},
+						},
+					},
 				})
 				Expect(err).To(MatchError(ContainSubstring("failed to parse layer content metadata")))
 				Expect(err).To(MatchError(ContainSubstring("permission denied")))
@@ -342,28 +415,18 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						Version: "some-version",
 					},
 					Layers: packit.Layers{Path: layersDir},
+					Plan: packit.BuildpackPlan{
+						Entries: []packit.BuildpackPlanEntry{
+							{
+								Name: "go-build",
+								Metadata: map[string]interface{}{
+									"targets": []interface{}{"some-target", "other-target"},
+								},
+							},
+						},
+					},
 				})
 				Expect(err).To(MatchError("failed to checksum working dir"))
-			})
-		})
-
-		context("when the configuration cannot be parsed", func() {
-			it.Before(func() {
-				parser.ParseCall.Returns.Error = errors.New("failed to parse configuration")
-			})
-
-			it("returns an error", func() {
-				_, err := build(packit.BuildContext{
-					WorkingDir: workingDir,
-					CNBPath:    cnbDir,
-					Stack:      "some-stack",
-					BuildpackInfo: packit.BuildpackInfo{
-						Name:    "Some Buildpack",
-						Version: "some-version",
-					},
-					Layers: packit.Layers{Path: layersDir},
-				})
-				Expect(err).To(MatchError("failed to parse configuration"))
 			})
 		})
 
@@ -382,6 +445,16 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						Version: "some-version",
 					},
 					Layers: packit.Layers{Path: layersDir},
+					Plan: packit.BuildpackPlan{
+						Entries: []packit.BuildpackPlanEntry{
+							{
+								Name: "go-build",
+								Metadata: map[string]interface{}{
+									"targets": []interface{}{"some-target", "other-target"},
+								},
+							},
+						},
+					},
 				})
 				Expect(err).To(MatchError("failed to setup go path"))
 			})
@@ -402,6 +475,16 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						Version: "some-version",
 					},
 					Layers: packit.Layers{Path: layersDir},
+					Plan: packit.BuildpackPlan{
+						Entries: []packit.BuildpackPlanEntry{
+							{
+								Name: "go-build",
+								Metadata: map[string]interface{}{
+									"targets": []interface{}{"some-target", "other-target"},
+								},
+							},
+						},
+					},
 				})
 				Expect(err).To(MatchError("failed to execute build process"))
 			})
@@ -422,6 +505,16 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						Version: "some-version",
 					},
 					Layers: packit.Layers{Path: layersDir},
+					Plan: packit.BuildpackPlan{
+						Entries: []packit.BuildpackPlanEntry{
+							{
+								Name: "go-build",
+								Metadata: map[string]interface{}{
+									"targets": []interface{}{"some-target", "other-target"},
+								},
+							},
+						},
+					},
 				})
 				Expect(err).To(MatchError("failed to teardown go path"))
 			})
@@ -443,6 +536,16 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						Version: "some-version",
 					},
 					Layers: packit.Layers{Path: layersDir},
+					Plan: packit.BuildpackPlan{
+						Entries: []packit.BuildpackPlanEntry{
+							{
+								Name: "go-build",
+								Metadata: map[string]interface{}{
+									"targets": []interface{}{"some-target", "other-target"},
+								},
+							},
+						},
+					},
 				})
 				Expect(err).To(MatchError("failed to identify start command from reused layer metadata"))
 			})
@@ -463,6 +566,16 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						Version: "some-version",
 					},
 					Layers: packit.Layers{Path: layersDir},
+					Plan: packit.BuildpackPlan{
+						Entries: []packit.BuildpackPlanEntry{
+							{
+								Name: "go-build",
+								Metadata: map[string]interface{}{
+									"targets": []interface{}{"some-target", "other-target"},
+								},
+							},
+						},
+					},
 				})
 				Expect(err).To(MatchError("failed to remove source"))
 			})
