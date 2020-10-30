@@ -1,42 +1,46 @@
 package gobuild
 
 import (
-	"path/filepath"
-
 	"github.com/paketo-buildpacks/packit"
 )
 
 //go:generate faux --interface ConfigurationParser --output fakes/configuration_parser.go
 type ConfigurationParser interface {
-	Parse(path string) (BuildConfiguration, error)
+	Parse(workingDir string) (BuildConfiguration, error)
 }
 
 func Detect(parser ConfigurationParser) packit.DetectFunc {
 	return func(context packit.DetectContext) (packit.DetectResult, error) {
-		configuration, err := parser.Parse(filepath.Join(context.WorkingDir, "buildpack.yml"))
+		configuration, err := parser.Parse(context.WorkingDir)
 		if err != nil {
-			return packit.DetectResult{}, err
+			return packit.DetectResult{}, packit.Fail.WithMessage("failed to parse build configuration: %w", err)
 		}
 
-		for _, target := range configuration.Targets {
-			files, err := filepath.Glob(filepath.Join(target, "*.go"))
-			if err != nil {
-				return packit.DetectResult{}, err
-			}
+		metadata := map[string]interface{}{
+			"targets": configuration.Targets,
+		}
 
-			if len(files) == 0 {
-				return packit.DetectResult{}, packit.Fail
-			}
+		if flags := configuration.Flags; flags != nil {
+			metadata["flags"] = flags
+		}
+
+		if importPath := configuration.ImportPath; importPath != "" {
+			metadata["import-path"] = importPath
 		}
 
 		return packit.DetectResult{
 			Plan: packit.BuildPlan{
+				Provides: []packit.BuildPlanProvision{{Name: "go-build"}},
 				Requires: []packit.BuildPlanRequirement{
 					{
 						Name: "go",
 						Metadata: map[string]interface{}{
 							"build": true,
 						},
+					},
+					{
+						Name:     "go-build",
+						Metadata: metadata,
 					},
 				},
 			},
