@@ -65,14 +65,6 @@ func (p GoBuildProcess) Execute(config GoBuildConfiguration) (string, error) {
 		config.Flags = append(config.Flags, "-buildmode", "pie")
 	}
 
-	if _, err = os.Stat(filepath.Join(config.Workspace, "go.mod")); err == nil {
-		if _, err = os.Stat(filepath.Join(config.Workspace, "vendor")); err == nil {
-			if !contains(config.Flags, "-mod") {
-				config.Flags = append(config.Flags, "-mod", "vendor")
-			}
-		}
-	}
-
 	args := append([]string{"build", "-o", config.Output}, config.Flags...)
 	args = append(args, config.Targets...)
 
