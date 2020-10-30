@@ -25,7 +25,7 @@ The proposed environment variables for Go Build are as follow:
 #### BP_GO_BUILD_FLAGS
 
 ```shell
-$BP_GO_BUILD_FLAGS='-buildmode=default,-tags=paketo,-ldflags="-X main.variable=some-value"'
+$BP_GO_BUILD_FLAGS='-buildmode=default -tags=paketo -ldflags="-X main.variable=some-value"'
 ```
 
 This will replace the following structure in `buildpack.yml`:
