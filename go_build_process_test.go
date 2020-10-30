@@ -119,36 +119,6 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 		Expect(logs.String()).To(ContainSubstring("      Completed in 1s"))
 	})
 
-	context("when the workspace contains a go.mod and a vendor directory", func() {
-		it.Before(func() {
-			Expect(ioutil.WriteFile(filepath.Join(workspacePath, "go.mod"), nil, 0644)).To(Succeed())
-			Expect(os.Mkdir(filepath.Join(workspacePath, "vendor"), os.ModePerm)).To(Succeed())
-		})
-
-		it("executes the go build process with -mod=vendor", func() {
-			command, err := buildProcess.Execute(gobuild.GoBuildConfiguration{
-				Workspace: workspacePath,
-				Output:    filepath.Join(layerPath, "bin"),
-				GoPath:    goPath,
-				GoCache:   goCache,
-				Targets:   []string{"./some-target", "./other-target"},
-			})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(command).To(Equal(filepath.Join(layerPath, "bin", "a_command")))
-
-			Expect(filepath.Join(layerPath, "bin")).To(BeADirectory())
-
-			Expect(executable.ExecuteCall.Receives.Execution.Args).To(Equal([]string{
-				"build",
-				"-o", filepath.Join(layerPath, "bin"),
-				"-buildmode", "pie",
-				"-mod", "vendor",
-				"./some-target", "./other-target",
-			}))
-			Expect(executable.ExecuteCall.Receives.Execution.Dir).To(Equal(workspacePath))
-		})
-	})
-
 	context("when there are build flags", func() {
 		it.Before(func() {
 			Expect(ioutil.WriteFile(filepath.Join(workspacePath, "go.mod"), nil, 0644)).To(Succeed())
