@@ -70,7 +70,7 @@ go:
 
 ### Deprecation Strategy
 In order to facilitate a smooth transition from `buildpack.yml`, the buildpack
-should will support both configuration options with environment variables
+will support both configuration options with environment variables
 taking priority or `buildpack.yml` until the 1.0 release of the buildpack. The
 buildpack will detect whether or not the application has a `buildpack.yml` and
 print a warning message which will include links to documentation on how to
@@ -83,4 +83,3 @@ release of the buildpack.
 * [Google buildpack configuration](https://github.com/GoogleCloudPlatform/buildpacks#language-idiomatic-configuration-options)
 * [Paketo Java configuration](https://paketo.io/docs/buildpacks/language-family-buildpacks/java)
 * [Heroku configuration](https://github.com/heroku/java-buildpack#customizing)
-
