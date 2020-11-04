@@ -74,19 +74,17 @@ func (p BuildConfigurationParser) Parse(workingDir string) (BuildConfiguration, 
 		return BuildConfiguration{}, fmt.Errorf("failed to decode buildpack.yml: %w", err)
 	}
 
-	// This will use targets that it got from the env var over the targests set in buildpack.yml
+	// Override buildpack.yml with environment variable
 	if len(targets) > 0 {
-		config.Go.Targets, err = p.targetManager.CleanAndValidate(targets, workingDir)
-		if err != nil {
-			return BuildConfiguration{}, err
-		}
-	} else {
-		config.Go.Targets, err = p.targetManager.CleanAndValidate(config.Go.Targets, workingDir)
-		if err != nil {
-			return BuildConfiguration{}, err
-		}
+		config.Go.Targets = targets
 	}
 
+	config.Go.Targets, err = p.targetManager.CleanAndValidate(config.Go.Targets, workingDir)
+	if err != nil {
+		return BuildConfiguration{}, err
+	}
+
+	// If targets field is still empty populate it with defaults
 	if len(config.Go.Targets) == 0 {
 		config.Go.Targets, err = p.targetManager.GenerateDefaults(workingDir)
 		if err != nil {
