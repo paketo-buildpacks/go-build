@@ -70,14 +70,15 @@ go:
 
 ### Deprecation Strategy
 In order to facilitate a smooth transition from `buildpack.yml`, the buildpack
-will support both configuration options with environment variables
-taking priority or `buildpack.yml` until the 1.0 release of the buildpack. The
+will support both configuration options with environment variables taking
+priority or `buildpack.yml` until the 1.0 release of the buildpack. The
 buildpack will detect whether or not the application has a `buildpack.yml` and
 print a warning message which will include links to documentation on how to
 upgrade and how to run builds with environment variable configuration. After
 1.0, having a `buildpack.yml` will cause a detection failure and with a link to
-the same documentation. This behavior will only last until the next patch
-release of the buildpack.
+the same documentation. This behavior will only last until the next minor
+release of the buildpack after which point there will no longer be and error
+but `buildpack.yml` will not be supported.
 
 ## Source Material
 * [Google buildpack configuration](https://github.com/GoogleCloudPlatform/buildpacks#language-idiomatic-configuration-options)
