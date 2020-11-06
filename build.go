@@ -59,7 +59,7 @@ func Build(
 
 		previousSum, _ := targetsLayer.Metadata[WorkspaceSHAKey].(string)
 		if checksum != previousSum {
-			configuration := BuildConfiguration{}
+			var configuration BuildConfiguration
 
 			entry := context.Plan.Entries[0]
 
