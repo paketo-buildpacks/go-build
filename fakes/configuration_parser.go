@@ -11,7 +11,7 @@ type ConfigurationParser struct {
 		sync.Mutex
 		CallCount int
 		Receives  struct {
-			Path string
+			WorkingDir string
 		}
 		Returns struct {
 			BuildConfiguration gobuild.BuildConfiguration
@@ -25,7 +25,7 @@ func (f *ConfigurationParser) Parse(param1 string) (gobuild.BuildConfiguration, 
 	f.ParseCall.Lock()
 	defer f.ParseCall.Unlock()
 	f.ParseCall.CallCount++
-	f.ParseCall.Receives.Path = param1
+	f.ParseCall.Receives.WorkingDir = param1
 	if f.ParseCall.Stub != nil {
 		return f.ParseCall.Stub(param1)
 	}

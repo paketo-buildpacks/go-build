@@ -36,7 +36,6 @@ func Build(
 	clock chronos.Clock,
 	checksumCalculator ChecksumCalculator,
 	logs LogEmitter,
-	parser ConfigurationParser,
 	sourceRemover SourceRemover,
 ) packit.BuildFunc {
 
@@ -60,9 +59,22 @@ func Build(
 
 		previousSum, _ := targetsLayer.Metadata[WorkspaceSHAKey].(string)
 		if checksum != previousSum {
-			configuration, err := parser.Parse(filepath.Join(context.WorkingDir, "buildpack.yml"))
-			if err != nil {
-				return packit.BuildResult{}, err
+			var configuration BuildConfiguration
+
+			entry := context.Plan.Entries[0]
+
+			for _, target := range entry.Metadata["targets"].([]interface{}) {
+				configuration.Targets = append(configuration.Targets, target.(string))
+			}
+
+			if flags, ok := entry.Metadata["flags"]; ok {
+				for _, flag := range flags.([]interface{}) {
+					configuration.Flags = append(configuration.Flags, flag.(string))
+				}
+			}
+
+			if importPath, ok := entry.Metadata["import-path"]; ok {
+				configuration.ImportPath = importPath.(string)
 			}
 
 			goPath, path, err := pathManager.Setup(context.WorkingDir, configuration.ImportPath)
