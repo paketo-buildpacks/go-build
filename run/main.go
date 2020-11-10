@@ -12,7 +12,7 @@ import (
 
 func main() {
 	logEmitter := gobuild.NewLogEmitter(os.Stdout)
-	configParser := gobuild.NewBuildConfigurationParser()
+	configParser := gobuild.NewBuildConfigurationParser(gobuild.NewGoTargetManager())
 
 	packit.Run(
 		gobuild.Detect(
@@ -28,7 +28,6 @@ func main() {
 			chronos.DefaultClock,
 			fs.NewChecksumCalculator(),
 			logEmitter,
-			configParser,
 			gobuild.NewSourceDeleter(),
 		),
 	)
