@@ -49,11 +49,11 @@ func testSourceDeleter(t *testing.T, context spec.G, it spec.S) {
 
 	context("when there are files to keep", func() {
 		it.Before(func() {
-			Expect(os.Setenv("BP_INCLUDE_FILES", `some-dir/some-other-dir/*:some-file`)).To(Succeed())
+			Expect(os.Setenv("BP_KEEP_FILES", `some-dir/some-other-dir/*:some-file`)).To(Succeed())
 		})
 
 		it.After(func() {
-			Expect(os.Unsetenv("BP_INCLUDE_FILES")).To(Succeed())
+			Expect(os.Unsetenv("BP_KEEP_FILES")).To(Succeed())
 		})
 
 		it("returns a result that deletes the contents of the working directroy except for the file that are meant to kept", func() {
@@ -71,11 +71,11 @@ func testSourceDeleter(t *testing.T, context spec.G, it spec.S) {
 	context("failure cases", func() {
 		context("when the path is malformed", func() {
 			it.Before(func() {
-				Expect(os.Setenv("BP_INCLUDE_FILES", `\`)).To(Succeed())
+				Expect(os.Setenv("BP_KEEP_FILES", `\`)).To(Succeed())
 			})
 
 			it.After(func() {
-				Expect(os.Unsetenv("BP_INCLUDE_FILES")).To(Succeed())
+				Expect(os.Unsetenv("BP_KEEP_FILES")).To(Succeed())
 			})
 
 			it("returns an error", func() {

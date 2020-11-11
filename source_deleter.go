@@ -15,7 +15,7 @@ func NewSourceDeleter() SourceDeleter {
 
 func (d SourceDeleter) Clear(path string) error {
 	var envGlobs []string
-	if val, ok := os.LookupEnv("BP_INCLUDE_FILES"); ok {
+	if val, ok := os.LookupEnv("BP_KEEP_FILES"); ok {
 		envGlobs = append(envGlobs, filepath.SplitList(val)...)
 	}
 
