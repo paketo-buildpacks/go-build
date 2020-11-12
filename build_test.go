@@ -147,11 +147,13 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Cache:     true,
 				},
 			},
-			Processes: []packit.Process{
-				{
-					Type:    "web",
-					Command: "some-start-command",
-					Direct:  false,
+			Launch: packit.LaunchMetadata{
+				Processes: []packit.Process{
+					{
+						Type:    "web",
+						Command: "some-start-command",
+						Direct:  false,
+					},
 				},
 			},
 		}))
@@ -246,11 +248,13 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						Cache:     true,
 					},
 				},
-				Processes: []packit.Process{
-					{
-						Type:    "web",
-						Command: "some-start-command",
-						Direct:  false,
+				Launch: packit.LaunchMetadata{
+					Processes: []packit.Process{
+						{
+							Type:    "web",
+							Command: "some-start-command",
+							Direct:  false,
+						},
 					},
 				},
 			}))
@@ -326,11 +330,13 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						Cache:     true,
 					},
 				},
-				Processes: []packit.Process{
-					{
-						Type:    "web",
-						Command: "some-start-command",
-						Direct:  true,
+				Launch: packit.LaunchMetadata{
+					Processes: []packit.Process{
+						{
+							Type:    "web",
+							Command: "some-start-command",
+							Direct:  true,
+						},
 					},
 				},
 			}))
