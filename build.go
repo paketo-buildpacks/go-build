@@ -125,11 +125,13 @@ func Build(
 		return packit.BuildResult{
 			Plan:   context.Plan,
 			Layers: []packit.Layer{targetsLayer, goCacheLayer},
-			Processes: []packit.Process{
-				{
-					Type:    "web",
-					Command: command,
-					Direct:  context.Stack == TinyStackName,
+			Launch: packit.LaunchMetadata{
+				Processes: []packit.Process{
+					{
+						Type:    "web",
+						Command: command,
+						Direct:  context.Stack == TinyStackName,
+					},
 				},
 			},
 		}, nil
