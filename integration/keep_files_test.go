@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/paketo-buildpacks/occam"
@@ -16,7 +15,7 @@ import (
 	. "github.com/paketo-buildpacks/occam/matchers"
 )
 
-func testMod(t *testing.T, context spec.G, it spec.S) {
+func testKeepFiles(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect     = NewWithT(t).Expect
 		Eventually = NewWithT(t).Eventually
@@ -30,7 +29,7 @@ func testMod(t *testing.T, context spec.G, it spec.S) {
 		docker = occam.NewDocker()
 	})
 
-	context("when building an app that uses modules", func() {
+	context("when building a simple app with no dependencies but perserving files in the workspace", func() {
 		var (
 			image     occam.Image
 			container occam.Container
@@ -54,7 +53,7 @@ func testMod(t *testing.T, context spec.G, it spec.S) {
 
 		it("builds successfully", func() {
 			var err error
-			source, err = occam.Source(filepath.Join("testdata", "mod"))
+			source, err = occam.Source(filepath.Join("testdata", "keep_files"))
 			Expect(err).NotTo(HaveOccurred())
 
 			var logs fmt.Stringer
@@ -64,6 +63,7 @@ func testMod(t *testing.T, context spec.G, it spec.S) {
 					settings.Buildpacks.GoDist.Online,
 					settings.Buildpacks.GoBuild.Online,
 				).
+				WithEnv(map[string]string{"BP_KEEP_FILES": "./static-file:assets/*"}).
 				Execute(name, source)
 			Expect(err).ToNot(HaveOccurred(), logs.String)
 
@@ -79,16 +79,8 @@ func testMod(t *testing.T, context spec.G, it spec.S) {
 			content, err := ioutil.ReadAll(response.Body)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(content)).To(ContainSubstring("go1.15"))
-
-			Expect(logs).To(ContainLines(
-				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
-				"  Executing build process",
-				fmt.Sprintf("    Running 'go build -o /layers/%s/targets/bin -buildmode pie .'", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
-				MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
-				"",
-				"  Assigning launch processes",
-				fmt.Sprintf("    web: /layers/%s/targets/bin/mod", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
-			))
+			Expect(string(content)).To(ContainSubstring("/workspace contents: [/workspace/assets /workspace/static-file]"))
+			Expect(string(content)).To(ContainSubstring("file contents: Hello world!"))
 		})
 	})
 }
