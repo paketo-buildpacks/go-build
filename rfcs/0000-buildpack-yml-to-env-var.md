@@ -28,6 +28,10 @@ The proposed environment variables for Go Build are as follow:
 $BP_GO_BUILD_FLAGS='-buildmode=default -tags=paketo -ldflags="-X main.variable=some-value"'
 ```
 
+Note: This will be parsed using this [shellwords
+library](https://github.com/mattn/go-shellwords). This is being done because
+GOFLAGS does not support flags that have spaces in them.
+
 This will replace the following structure in `buildpack.yml`:
 
 ```yaml
