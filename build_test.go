@@ -32,6 +32,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		logs          *bytes.Buffer
 		timestamp     time.Time
 		sourceRemover *fakes.SourceRemover
+		parser        *fakes.ConfigurationParser
 
 		build packit.BuildFunc
 	)
@@ -66,7 +67,15 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 		sourceRemover = &fakes.SourceRemover{}
 
+		parser = &fakes.ConfigurationParser{}
+		parser.ParseCall.Returns.BuildConfiguration = gobuild.BuildConfiguration{
+			Targets:    []string{"some-target", "other-target"},
+			Flags:      []string{"some-flag", "other-flag"},
+			ImportPath: "some-import-path",
+		}
+
 		build = gobuild.Build(
+			parser,
 			buildProcess,
 			pathManager,
 			clock,

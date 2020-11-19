@@ -19,6 +19,7 @@ func main() {
 			configParser,
 		),
 		gobuild.Build(
+			configParser,
 			gobuild.NewGoBuildProcess(
 				pexec.NewExecutable("go"),
 				logEmitter,

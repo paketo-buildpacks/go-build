@@ -31,6 +31,7 @@ type SourceRemover interface {
 }
 
 func Build(
+	parser ConfigurationParser,
 	buildProcess BuildProcess,
 	pathManager PathManager,
 	clock chronos.Clock,
@@ -59,22 +60,11 @@ func Build(
 
 		previousSum, _ := targetsLayer.Metadata[WorkspaceSHAKey].(string)
 		if checksum != previousSum {
-			var configuration BuildConfiguration
-
-			entry := context.Plan.Entries[0]
-
-			for _, target := range entry.Metadata["targets"].([]interface{}) {
-				configuration.Targets = append(configuration.Targets, target.(string))
-			}
-
-			if flags, ok := entry.Metadata["flags"]; ok {
-				for _, flag := range flags.([]interface{}) {
-					configuration.Flags = append(configuration.Flags, flag.(string))
-				}
-			}
-
-			if importPath, ok := entry.Metadata["import-path"]; ok {
-				configuration.ImportPath = importPath.(string)
+			// Parse the BuildConfiguration from the environment again since a prior
+			// step may have augmented the configuration.
+			configuration, err := parser.Parse(context.WorkingDir)
+			if err != nil {
+				return packit.BuildResult{}, packit.Fail.WithMessage("failed to parse build configuration: %w", err)
 			}
 
 			goPath, path, err := pathManager.Setup(context.WorkingDir, configuration.ImportPath)
