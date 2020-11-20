@@ -113,7 +113,6 @@ func Build(
 		logs.Subprocess("web: %s", command)
 
 		return packit.BuildResult{
-			Plan:   context.Plan,
 			Layers: []packit.Layer{targetsLayer, goCacheLayer},
 			Launch: packit.LaunchMetadata{
 				Processes: []packit.Process{

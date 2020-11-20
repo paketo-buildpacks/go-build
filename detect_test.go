@@ -38,21 +38,12 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.Plan).To(Equal(packit.BuildPlan{
-			Provides: []packit.BuildPlanProvision{{Name: "go-build"}},
-			Requires: []packit.BuildPlanRequirement{
-				{
-					Name: "go",
-					Metadata: map[string]interface{}{
-						"build": true,
-					},
+			Requires: []packit.BuildPlanRequirement{{
+				Name: "go",
+				Metadata: map[string]interface{}{
+					"build": true,
 				},
-				{
-					Name: "go-build",
-					Metadata: map[string]interface{}{
-						"targets": []string{workingDir},
-					},
-				},
-			},
+			}},
 		}))
 
 		Expect(parser.ParseCall.Receives.WorkingDir).To(Equal(workingDir))
@@ -69,22 +60,12 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Plan).To(Equal(packit.BuildPlan{
-				Provides: []packit.BuildPlanProvision{{Name: "go-build"}},
-				Requires: []packit.BuildPlanRequirement{
-					{
-						Name: "go",
-						Metadata: map[string]interface{}{
-							"build": true,
-						},
+				Requires: []packit.BuildPlanRequirement{{
+					Name: "go",
+					Metadata: map[string]interface{}{
+						"build": true,
 					},
-					{
-						Name: "go-build",
-						Metadata: map[string]interface{}{
-							"targets": []string{workingDir},
-							"flags":   []string{"-some-flag=flag"},
-						},
-					},
-				},
+				}},
 			}))
 
 			Expect(parser.ParseCall.Receives.WorkingDir).To(Equal(workingDir))
@@ -102,22 +83,12 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Plan).To(Equal(packit.BuildPlan{
-				Provides: []packit.BuildPlanProvision{{Name: "go-build"}},
-				Requires: []packit.BuildPlanRequirement{
-					{
-						Name: "go",
-						Metadata: map[string]interface{}{
-							"build": true,
-						},
+				Requires: []packit.BuildPlanRequirement{{
+					Name: "go",
+					Metadata: map[string]interface{}{
+						"build": true,
 					},
-					{
-						Name: "go-build",
-						Metadata: map[string]interface{}{
-							"targets":     []string{workingDir},
-							"import-path": "./some/path",
-						},
-					},
-				},
+				}},
 			}))
 
 			Expect(parser.ParseCall.Receives.WorkingDir).To(Equal(workingDir))
@@ -138,24 +109,12 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Plan).To(Equal(packit.BuildPlan{
-				Provides: []packit.BuildPlanProvision{{Name: "go-build"}},
-				Requires: []packit.BuildPlanRequirement{
-					{
-						Name: "go",
-						Metadata: map[string]interface{}{
-							"build": true,
-						},
+				Requires: []packit.BuildPlanRequirement{{
+					Name: "go",
+					Metadata: map[string]interface{}{
+						"build": true,
 					},
-					{
-						Name: "go-build",
-						Metadata: map[string]interface{}{
-							"targets": []string{
-								filepath.Join(workingDir, "first"),
-								filepath.Join(workingDir, "second"),
-							},
-						},
-					},
-				},
+				}},
 			}))
 
 			Expect(parser.ParseCall.Receives.WorkingDir).To(Equal(workingDir))
