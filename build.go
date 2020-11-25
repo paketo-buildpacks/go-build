@@ -22,7 +22,7 @@ type PathManager interface {
 
 //go:generate faux --interface ChecksumCalculator --output fakes/checksum_calculator.go
 type ChecksumCalculator interface {
-	Sum(path string) (sha string, err error)
+	Sum(paths ...string) (sha string, err error)
 }
 
 //go:generate faux --interface SourceRemover --output fakes/source_remover.go

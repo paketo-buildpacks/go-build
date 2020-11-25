@@ -143,7 +143,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			},
 		}))
 
-		Expect(calculator.SumCall.Receives.Path).To(Equal(workingDir))
+		Expect(calculator.SumCall.Receives.Paths).To(Equal([]string{workingDir}))
 
 		Expect(pathManager.SetupCall.Receives.Workspace).To(Equal(workingDir))
 		Expect(pathManager.SetupCall.Receives.ImportPath).To(Equal("some-import-path"))
@@ -224,7 +224,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 				},
 			}))
 
-			Expect(calculator.SumCall.Receives.Path).To(Equal(workingDir))
+			Expect(calculator.SumCall.Receives.Paths).To(Equal([]string{workingDir}))
 			Expect(pathManager.SetupCall.CallCount).To(Equal(0))
 			Expect(buildProcess.ExecuteCall.CallCount).To(Equal(0))
 			Expect(pathManager.TeardownCall.CallCount).To(Equal(0))
