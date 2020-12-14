@@ -78,7 +78,11 @@ func testLayerReuse(t *testing.T, context spec.G, it spec.S) {
 			Expect(firstImage.Buildpacks[1].Key).To(Equal(settings.Buildpack.ID))
 			Expect(firstImage.Buildpacks[1].Layers).To(HaveKey("targets"))
 
-			firstContainer, err := docker.Container.Run.Execute(firstImage.ID)
+			firstContainer, err := docker.Container.Run.
+				WithEnv(map[string]string{"PORT": "8080"}).
+				WithPublish("8080").
+				WithPublishAll().
+				Execute(firstImage.ID)
 			Expect(err).NotTo(HaveOccurred())
 
 			containerIDs[firstContainer.ID] = struct{}{}
@@ -96,7 +100,11 @@ func testLayerReuse(t *testing.T, context spec.G, it spec.S) {
 
 			Expect(secondImage.Buildpacks[1].Layers["targets"].Metadata["built_at"]).To(Equal(firstImage.Buildpacks[1].Layers["targets"].Metadata["built_at"]))
 
-			secondContainer, err := docker.Container.Run.Execute(secondImage.ID)
+			secondContainer, err := docker.Container.Run.
+				WithEnv(map[string]string{"PORT": "8080"}).
+				WithPublish("8080").
+				WithPublishAll().
+				Execute(secondImage.ID)
 			Expect(err).NotTo(HaveOccurred())
 
 			containerIDs[secondContainer.ID] = struct{}{}
