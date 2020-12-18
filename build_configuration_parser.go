@@ -2,19 +2,21 @@ package gobuild
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
-	"github.com/buildkite/interpolate"
-	"gopkg.in/yaml.v2"
+	"github.com/mattn/go-shellwords"
 )
 
 //go:generate faux --interface TargetManager --output fakes/target_manager.go
 type TargetManager interface {
 	CleanAndValidate(targets []string, workingDir string) ([]string, error)
 	GenerateDefaults(workingDir string) ([]string, error)
+}
+
+//go:generate faux --interface BuildpackYMLParser --output fakes/buildpack_yml_parser.go
+type BuildpackYMLParser interface {
+	Parse(workingDir string) (BuildConfiguration, error)
 }
 
 type BuildConfiguration struct {
@@ -24,104 +26,61 @@ type BuildConfiguration struct {
 }
 
 type BuildConfigurationParser struct {
-	targetManager TargetManager
+	targetManager      TargetManager
+	buildpackYMLParser BuildpackYMLParser
 }
 
-func NewBuildConfigurationParser(targetManager TargetManager) BuildConfigurationParser {
+func NewBuildConfigurationParser(targetManager TargetManager, buildpackYMLParser BuildpackYMLParser) BuildConfigurationParser {
 	return BuildConfigurationParser{
-		targetManager: targetManager,
+		targetManager:      targetManager,
+		buildpackYMLParser: buildpackYMLParser,
 	}
 }
 
 func (p BuildConfigurationParser) Parse(workingDir string) (BuildConfiguration, error) {
-	var targets []string
-	if val, ok := os.LookupEnv("BP_GO_TARGETS"); ok {
-		targets = filepath.SplitList(val)
-	}
+	var buildConfiguration BuildConfiguration
 
-	file, err := os.Open(filepath.Join(workingDir, "buildpack.yml"))
+	_, err := os.Stat(filepath.Join(workingDir, "buildpack.yml"))
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			if len(targets) == 0 {
-				targets, err = p.targetManager.GenerateDefaults(workingDir)
-				if err != nil {
-					return BuildConfiguration{}, err
-				}
-			} else {
-				targets, err = p.targetManager.CleanAndValidate(targets, workingDir)
-				if err != nil {
-					return BuildConfiguration{}, err
-				}
-			}
-			return BuildConfiguration{Targets: targets}, nil
+		if !errors.Is(err, os.ErrNotExist) {
+			return BuildConfiguration{}, err
 		}
-
-		return BuildConfiguration{}, fmt.Errorf("failed to read buildpack.yml: %w", err)
-	}
-
-	var config struct {
-		Go struct {
-			Targets []string `yaml:"targets"`
-			Build   struct {
-				Flags      []string `yaml:"flags"`
-				ImportPath string   `yaml:"import-path"`
-			} `yaml:"build"`
-		} `yaml:"go"`
-	}
-
-	err = yaml.NewDecoder(file).Decode(&config)
-	if err != nil {
-		return BuildConfiguration{}, fmt.Errorf("failed to decode buildpack.yml: %w", err)
-	}
-
-	// Override buildpack.yml with environment variable
-	if len(targets) > 0 {
-		config.Go.Targets = targets
-	}
-
-	config.Go.Targets, err = p.targetManager.CleanAndValidate(config.Go.Targets, workingDir)
-	if err != nil {
-		return BuildConfiguration{}, err
-	}
-
-	// If targets field is still empty populate it with defaults
-	if len(config.Go.Targets) == 0 {
-		config.Go.Targets, err = p.targetManager.GenerateDefaults(workingDir)
+	} else {
+		buildConfiguration, err = p.buildpackYMLParser.Parse(workingDir)
 		if err != nil {
 			return BuildConfiguration{}, err
 		}
 	}
 
-	env := interpolate.NewSliceEnv(os.Environ())
-
-	var buildFlags []string
-	for _, flag := range config.Go.Build.Flags {
-		for _, f := range splitFlags(flag) {
-			interpolatedFlag, err := interpolate.Interpolate(env, f)
-			if err != nil {
-				return BuildConfiguration{}, fmt.Errorf("environment variable expansion failed: %w", err)
-			}
-			buildFlags = append(buildFlags, interpolatedFlag)
-		}
+	if val, ok := os.LookupEnv("BP_GO_TARGETS"); ok {
+		buildConfiguration.Targets = filepath.SplitList(val)
 	}
-	config.Go.Build.Flags = buildFlags
 
-	return BuildConfiguration{
-		Targets:    config.Go.Targets,
-		Flags:      config.Go.Build.Flags,
-		ImportPath: config.Go.Build.ImportPath,
-	}, nil
-}
-
-func splitFlags(flag string) []string {
-	parts := strings.SplitN(flag, "=", 2)
-	if len(parts) == 2 {
-		if len(parts[1]) >= 2 {
-			if c := parts[1][len(parts[1])-1]; parts[1][0] == c && (c == '"' || c == '\'') {
-				parts[1] = parts[1][1 : len(parts[1])-1]
-			}
+	if len(buildConfiguration.Targets) > 0 {
+		buildConfiguration.Targets, err = p.targetManager.CleanAndValidate(buildConfiguration.Targets, workingDir)
+		if err != nil {
+			return BuildConfiguration{}, err
+		}
+	} else {
+		buildConfiguration.Targets, err = p.targetManager.GenerateDefaults(workingDir)
+		if err != nil {
+			return BuildConfiguration{}, err
 		}
 	}
 
-	return parts
+	if val, ok := os.LookupEnv("BP_GO_BUILD_FLAGS"); ok {
+		shellwordsParser := shellwords.NewParser()
+		shellwordsParser.ParseEnv = true
+		buildConfiguration.Flags, err = shellwordsParser.Parse(val)
+		if err != nil {
+			return BuildConfiguration{}, err
+		}
+	}
+
+	if val, ok := os.LookupEnv("BP_GO_BUILD_IMPORT_PATH"); ok {
+		buildConfiguration.ImportPath = val
+	}
+
+	return buildConfiguration, nil
+
 }
