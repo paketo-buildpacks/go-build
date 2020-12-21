@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/buildkite/interpolate"
 	"gopkg.in/yaml.v2"
@@ -38,11 +39,13 @@ func (p GoBuildpackYMLParser) Parse(workingDir string) (BuildConfiguration, erro
 
 	var buildFlags []string
 	for _, flag := range config.Go.Build.Flags {
-		interpolatedFlag, err := interpolate.Interpolate(interpolate.NewSliceEnv(os.Environ()), flag)
-		if err != nil {
-			return BuildConfiguration{}, fmt.Errorf("environment variable expansion failed: %w", err)
+		for _, f := range splitFlags(flag) {
+			interpolatedFlag, err := interpolate.Interpolate(interpolate.NewSliceEnv(os.Environ()), f)
+			if err != nil {
+				return BuildConfiguration{}, fmt.Errorf("environment variable expansion failed: %w", err)
+			}
+			buildFlags = append(buildFlags, interpolatedFlag)
 		}
-		buildFlags = append(buildFlags, interpolatedFlag)
 	}
 	config.Go.Build.Flags = buildFlags
 
@@ -51,4 +54,17 @@ func (p GoBuildpackYMLParser) Parse(workingDir string) (BuildConfiguration, erro
 		Flags:      config.Go.Build.Flags,
 		ImportPath: config.Go.Build.ImportPath,
 	}, nil
+}
+
+func splitFlags(flag string) []string {
+	parts := strings.SplitN(flag, "=", 2)
+	if len(parts) == 2 {
+		if len(parts[1]) >= 2 {
+			if c := parts[1][len(parts[1])-1]; parts[1][0] == c && (c == '"' || c == '\'') {
+				parts[1] = parts[1][1 : len(parts[1])-1]
+			}
+		}
+	}
+
+	return parts
 }

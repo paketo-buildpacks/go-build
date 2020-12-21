@@ -56,7 +56,8 @@ go:
 				Flags: []string{
 					"-first",
 					"value",
-					"-second=value",
+					"-second",
+					"value",
 				},
 				ImportPath: "some-import-path",
 			}))
@@ -87,8 +88,10 @@ go:
 
 				Expect(config).To(Equal(gobuild.BuildConfiguration{
 					Flags: []string{
-						"-first=first-val",
-						"-second=second-val",
+						"-first",
+						"first-val",
+						"-second",
+						"second-val",
 					},
 				}))
 			})
