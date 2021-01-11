@@ -43,15 +43,19 @@ func Build(
 	return func(context packit.BuildContext) (packit.BuildResult, error) {
 		logs.Title("%s %s", context.BuildpackInfo.Name, context.BuildpackInfo.Version)
 
-		targetsLayer, err := context.Layers.Get(TargetsLayerName, packit.LaunchLayer)
+		targetsLayer, err := context.Layers.Get(TargetsLayerName)
 		if err != nil {
 			return packit.BuildResult{}, err
 		}
 
-		goCacheLayer, err := context.Layers.Get(GoCacheLayerName, packit.CacheLayer)
+		targetsLayer.Launch = true
+
+		goCacheLayer, err := context.Layers.Get(GoCacheLayerName)
 		if err != nil {
 			return packit.BuildResult{}, err
 		}
+
+		goCacheLayer.Cache = true
 
 		checksum, err := checksumCalculator.Sum(context.WorkingDir)
 		if err != nil {
