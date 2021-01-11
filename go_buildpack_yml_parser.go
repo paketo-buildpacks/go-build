@@ -10,10 +10,14 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type GoBuildpackYMLParser struct{}
+type GoBuildpackYMLParser struct {
+	logger LogEmitter
+}
 
-func NewGoBuildpackYMLParser() GoBuildpackYMLParser {
-	return GoBuildpackYMLParser{}
+func NewGoBuildpackYMLParser(logger LogEmitter) GoBuildpackYMLParser {
+	return GoBuildpackYMLParser{
+		logger: logger,
+	}
 }
 
 func (p GoBuildpackYMLParser) Parse(workingDir string) (BuildConfiguration, error) {
@@ -49,11 +53,19 @@ func (p GoBuildpackYMLParser) Parse(workingDir string) (BuildConfiguration, erro
 	}
 	config.Go.Build.Flags = buildFlags
 
-	return BuildConfiguration{
+	buildConfiguration := BuildConfiguration{
 		Targets:    config.Go.Targets,
 		Flags:      config.Go.Build.Flags,
 		ImportPath: config.Go.Build.ImportPath,
-	}, nil
+	}
+
+	if buildConfiguration.Targets != nil || buildConfiguration.Flags != nil || buildConfiguration.ImportPath != "" {
+		p.logger.Process("WARNING: Setting the Go Build configurations such as targets, build flags, and import path through buildpack.yml will be deprecated soon in Go Build Buildpack v1.0.0.")
+		p.logger.Process("Please specify these configuration options through environment variables instead. See README.md or the documentation on paketo.io for more information.")
+		p.logger.Break()
+	}
+
+	return buildConfiguration, nil
 }
 
 func splitFlags(flag string) []string {

@@ -60,6 +60,7 @@ func testImportPath(t *testing.T, context spec.G, it spec.S) {
 			var logs fmt.Stringer
 			image, logs, err = pack.Build.
 				WithPullPolicy("never").
+				WithEnv(map[string]string{"BP_GO_BUILD_IMPORT_PATH": "github.com/paketo-buildpacks/go-build/integration/testdata/import_path"}).
 				WithBuildpacks(
 					settings.Buildpacks.GoDist.Online,
 					settings.Buildpacks.GoBuild.Online,

@@ -82,5 +82,4 @@ func (p BuildConfigurationParser) Parse(workingDir string) (BuildConfiguration, 
 	}
 
 	return buildConfiguration, nil
-
 }

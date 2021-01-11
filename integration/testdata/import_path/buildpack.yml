@@ -1,4 +1,0 @@
----
-go:
-  build:
-    import-path: github.com/paketo-buildpacks/go-build/integration/testdata/import_path

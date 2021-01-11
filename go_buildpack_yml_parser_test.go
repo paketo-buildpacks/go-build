@@ -1,6 +1,7 @@
 package gobuild_test
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -17,6 +18,7 @@ func testGoBuildpackYMLParser(t *testing.T, context spec.G, it spec.S) {
 		Expect = NewWithT(t).Expect
 
 		workingDir string
+		logs       *bytes.Buffer
 
 		goBuildpackYMLParser gobuild.GoBuildpackYMLParser
 	)
@@ -39,7 +41,8 @@ go:
     import-path: some-import-path
 `), 0644)).To(Succeed())
 
-		goBuildpackYMLParser = gobuild.NewGoBuildpackYMLParser()
+		logs = bytes.NewBuffer(nil)
+		goBuildpackYMLParser = gobuild.NewGoBuildpackYMLParser(gobuild.NewLogEmitter(logs))
 	})
 
 	it.After(func() {
@@ -61,6 +64,8 @@ go:
 				},
 				ImportPath: "some-import-path",
 			}))
+			Expect(logs.String()).To(ContainSubstring("WARNING: Setting the Go Build configurations such as targets, build flags, and import path through buildpack.yml will be deprecated soon in Go Build Buildpack v1.0.0."))
+			Expect(logs.String()).To(ContainSubstring("Please specify these configuration options through environment variables instead. See README.md or the documentation on paketo.io for more information."))
 		})
 
 		context("when the flags have an env var in them", func() {
@@ -96,6 +101,25 @@ go:
 				}))
 			})
 		}, spec.Sequential())
+
+		context("when the buildpack.yml does not contain go configuration", func() {
+			it.Before(func() {
+				Expect(ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), []byte(`---
+not-go:
+  build:
+    flags:
+    - -first=value
+`), 0644)).To(Succeed())
+			})
+
+			it("does not return a deprecation message", func() {
+				config, err := goBuildpackYMLParser.Parse(workingDir)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(config).To(Equal(gobuild.BuildConfiguration{}))
+				Expect(logs.String()).To(BeEmpty())
+			})
+		})
 
 		context("failure cases", func() {
 			context("buildpack.yml cannot be opened", func() {
