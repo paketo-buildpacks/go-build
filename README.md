@@ -48,7 +48,7 @@ go:
   - ./cmd/debug-server
 ```
 
-### `BP_GO_BUILD_FLAGS
+### `BP_GO_BUILD_FLAGS`
 The `BP_GO_BUILD_FLAGS` variable allows you to override the default build flags
 when compiling your program.
 
