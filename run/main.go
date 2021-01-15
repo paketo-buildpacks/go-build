@@ -12,7 +12,7 @@ import (
 
 func main() {
 	logEmitter := gobuild.NewLogEmitter(os.Stdout)
-	configParser := gobuild.NewBuildConfigurationParser(gobuild.NewGoTargetManager())
+	configParser := gobuild.NewBuildConfigurationParser(gobuild.NewGoTargetManager(), gobuild.NewGoBuildpackYMLParser(logEmitter))
 
 	packit.Run(
 		gobuild.Detect(

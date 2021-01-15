@@ -56,6 +56,7 @@ func testBuildFlags(t *testing.T, context spec.G, it spec.S) {
 			var logs fmt.Stringer
 			image, logs, err = pack.Build.
 				WithPullPolicy("never").
+				WithEnv(map[string]string{"BP_GO_BUILD_FLAGS": `-buildmode=default -tags=paketo -ldflags="-X main.variable=some-value"`}).
 				WithBuildpacks(
 					settings.Buildpacks.GoDist.Online,
 					settings.Buildpacks.GoBuild.Online,
@@ -85,7 +86,7 @@ func testBuildFlags(t *testing.T, context spec.G, it spec.S) {
 			Expect(logs).To(ContainLines(
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
 				"  Executing build process",
-				fmt.Sprintf("    Running 'go build -o /layers/%s/targets/bin -buildmode default -tags paketo -ldflags \"-X main.variable=some-value\" .'", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+				fmt.Sprintf("    Running 'go build -o /layers/%s/targets/bin -buildmode=default -tags=paketo \"-ldflags=-X main.variable=some-value\" .'", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 				MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
 				"",
 				"  Assigning launch processes",
@@ -97,17 +98,20 @@ func testBuildFlags(t *testing.T, context spec.G, it spec.S) {
 	context("when building a simple app with build flags with env var interpolation", func() {
 		it("builds successfully", func() {
 			var err error
-			source, err = occam.Source(filepath.Join("testdata", "build_flags_with_env_var"))
+			source, err = occam.Source(filepath.Join("testdata", "build_flags"))
 			Expect(err).NotTo(HaveOccurred())
 
 			var logs fmt.Stringer
 			image, logs, err = pack.Build.
 				WithPullPolicy("never").
+				WithEnv(map[string]string{
+					"BP_GO_BUILD_FLAGS": `-buildmode=default -tags=paketo -ldflags="-X main.variable=${SOME_VALUE}"`,
+					"SOME_VALUE":        "env-value",
+				}).
 				WithBuildpacks(
 					settings.Buildpacks.GoDist.Online,
 					settings.Buildpacks.GoBuild.Online,
 				).
-				WithEnv(map[string]string{"SOME_VALUE": "env-value"}).
 				Execute(name, source)
 			Expect(err).ToNot(HaveOccurred(), logs.String)
 
@@ -133,7 +137,7 @@ func testBuildFlags(t *testing.T, context spec.G, it spec.S) {
 			Expect(logs).To(ContainLines(
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
 				"  Executing build process",
-				fmt.Sprintf("    Running 'go build -o /layers/%s/targets/bin -buildmode default -tags paketo -ldflags \"-X main.variable=env-value\" .'", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+				fmt.Sprintf("    Running 'go build -o /layers/%s/targets/bin -buildmode=default -tags=paketo \"-ldflags=-X main.variable=env-value\" .'", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 				MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
 				"",
 				"  Assigning launch processes",

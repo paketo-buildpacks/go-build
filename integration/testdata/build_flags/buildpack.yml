@@ -1,7 +1,0 @@
----
-go:
-  build:
-    flags:
-    - -buildmode=default
-    - -tags=paketo
-    - -ldflags="-X main.variable=some-value"

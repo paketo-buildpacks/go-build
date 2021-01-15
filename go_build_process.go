@@ -53,7 +53,7 @@ func (p GoBuildProcess) Execute(config GoBuildConfiguration) (string, error) {
 
 	contains := func(flags []string, match string) bool {
 		for _, flag := range flags {
-			if flag == match {
+			if strings.HasPrefix(flag, match) {
 				return true
 			}
 		}

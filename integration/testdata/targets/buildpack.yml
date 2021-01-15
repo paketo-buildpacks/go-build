@@ -1,5 +1,0 @@
----
-go:
-  targets:
-  - first
-  - ./second

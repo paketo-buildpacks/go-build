@@ -16,7 +16,7 @@ import (
 	. "github.com/paketo-buildpacks/occam/matchers"
 )
 
-func testTargets(t *testing.T, context spec.G, it spec.S) {
+func testBuildpackYML(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect     = NewWithT(t).Expect
 		Eventually = NewWithT(t).Eventually
@@ -46,6 +46,13 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 
 			source, err = occam.Source(filepath.Join("testdata", "targets"))
 			Expect(err).NotTo(HaveOccurred())
+
+			err = ioutil.WriteFile(filepath.Join(source, "buildpack.yml"), []byte(`---
+go:
+  targets:
+  - first
+  - ./second`), 0600)
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		it.After(func() {
@@ -60,7 +67,6 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 			var logs fmt.Stringer
 			image, logs, err = pack.Build.
 				WithPullPolicy("never").
-				WithEnv(map[string]string{"BP_GO_TARGETS": "first:./second"}).
 				WithBuildpacks(
 					settings.Buildpacks.GoDist.Online,
 					settings.Buildpacks.GoBuild.Online,
@@ -87,6 +93,9 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 
 			Expect(logs).To(ContainLines(
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
+				"  WARNING: Setting the Go Build configurations such as targets, build flags, and import path through buildpack.yml will be deprecated soon in Go Build Buildpack v1.0.0.",
+				"  Please specify these configuration options through environment variables instead. See README.md or the documentation on paketo.io for more information.",
+				"",
 				"  Executing build process",
 				fmt.Sprintf("    Running 'go build -o /layers/%s/targets/bin -buildmode pie ./first ./second'", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 				MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
@@ -94,6 +103,52 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 				"  Assigning launch processes",
 				fmt.Sprintf("    web: /layers/%s/targets/bin/first", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 			))
+		})
+
+		context("when building an app with target specified via BP_GO_TARGETS env", func() {
+			it("builds succesfully and overrides buildpack.yml while still printing a warning", func() {
+				var err error
+				var logs fmt.Stringer
+				image, logs, err = pack.Build.
+					WithPullPolicy("never").
+					WithEnv(map[string]string{"BP_GO_TARGETS": "./third"}).
+					WithBuildpacks(
+						settings.Buildpacks.GoDist.Online,
+						settings.Buildpacks.GoBuild.Online,
+					).
+					Execute(name, source)
+				Expect(err).ToNot(HaveOccurred(), logs.String)
+
+				container, err = docker.Container.Run.
+					WithEnv(map[string]string{"PORT": "8080"}).
+					WithPublish("8080").
+					WithPublishAll().
+					Execute(image.ID)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(container).Should(BeAvailable())
+
+				response, err := http.Get(fmt.Sprintf("http://localhost:%s", container.HostPort("8080")))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+				content, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(content)).To(ContainSubstring("third: go1.15"))
+
+				Expect(logs).To(ContainLines(
+					MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
+					"  WARNING: Setting the Go Build configurations such as targets, build flags, and import path through buildpack.yml will be deprecated soon in Go Build Buildpack v1.0.0.",
+					"  Please specify these configuration options through environment variables instead. See README.md or the documentation on paketo.io for more information.",
+					"",
+					"  Executing build process",
+					fmt.Sprintf("    Running 'go build -o /layers/%s/targets/bin -buildmode pie ./third'", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+					MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
+					"",
+					"  Assigning launch processes",
+					fmt.Sprintf("    web: /layers/%s/targets/bin/third", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+				))
+			})
 		})
 	})
 }

@@ -18,8 +18,10 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
-		workingDir    string
-		targetManager *fakes.TargetManager
+		workingDir string
+
+		targetManager      *fakes.TargetManager
+		buildpackYMLParser *fakes.BuildpackYMLParser
 
 		parser gobuild.BuildConfigurationParser
 	)
@@ -30,30 +32,101 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 		Expect(err).NotTo(HaveOccurred())
 
 		targetManager = &fakes.TargetManager{}
+		targetManager.GenerateDefaultsCall.Returns.StringSlice = []string{"."}
 
-		parser = gobuild.NewBuildConfigurationParser(targetManager)
+		buildpackYMLParser = &fakes.BuildpackYMLParser{}
+		buildpackYMLParser.ParseCall.Returns.BuildConfiguration = gobuild.BuildConfiguration{
+			Targets: []string{"./first", "./second"},
+			Flags: []string{
+				"-first=value",
+			},
+			ImportPath: "some-import-path",
+		}
+
+		parser = gobuild.NewBuildConfigurationParser(targetManager, buildpackYMLParser)
 	})
 
 	it.After(func() {
 		Expect(os.RemoveAll(workingDir)).To(Succeed())
 	})
 
-	context("when there is a buildpack.yml", func() {
+	context("when BP_GO_TARGETS is set", func() {
 		it.Before(func() {
-			err := ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), []byte(`---
-go:
-  targets:
-  - first
-  - ./second
-  build:
-    flags:
-    - -first
-    - value
-    - -second=value
-    - -third="value"
-    - -fourth='value'
-    import-path: some-import-path
-`), 0644)
+			os.Setenv("BP_GO_TARGETS", "some/target1:./some/target2")
+			targetManager.CleanAndValidateCall.Returns.StringSlice = []string{"./some/target1", "./some/target2"}
+		})
+
+		it.After(func() {
+			os.Unsetenv("BP_GO_TARGETS")
+		})
+
+		it("uses the values in the env var", func() {
+			configuration, err := parser.Parse(workingDir)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(configuration).To(Equal(gobuild.BuildConfiguration{
+				Targets: []string{"./some/target1", "./some/target2"},
+			}))
+
+			Expect(targetManager.CleanAndValidateCall.Receives.Targets).To(Equal([]string{"some/target1", "./some/target2"}))
+			Expect(targetManager.CleanAndValidateCall.Receives.WorkingDir).To(Equal(workingDir))
+		})
+	}, spec.Sequential())
+
+	context("when BP_GO_BUILD_FLAGS is set", func() {
+		it.Before(func() {
+			os.Setenv("BP_GO_BUILD_FLAGS", `-buildmode=default -tags=paketo -ldflags="-X main.variable=some-value" -first=$FIRST -second=${SECOND}`)
+			os.Setenv("FIRST", "first-flag")
+			os.Setenv("SECOND", "second-flag")
+		})
+
+		it.After(func() {
+			os.Unsetenv("BP_GO_BUILD_FLAGS")
+			os.Unsetenv("FIRST")
+			os.Unsetenv("SECOND")
+		})
+
+		it("uses the values in the env var", func() {
+			configuration, err := parser.Parse(workingDir)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(configuration).To(Equal(gobuild.BuildConfiguration{
+				Targets: []string{"."},
+				Flags: []string{
+					"-buildmode=default",
+					"-tags=paketo",
+					`-ldflags=-X main.variable=some-value`,
+					"-first=first-flag",
+					"-second=second-flag",
+				},
+			}))
+
+			Expect(targetManager.GenerateDefaultsCall.Receives.WorkingDir).To(Equal(workingDir))
+		})
+	}, spec.Sequential())
+
+	context("when BP_GO_BUILD_IMPORT_PATH is set", func() {
+		it.Before(func() {
+			os.Setenv("BP_GO_BUILD_IMPORT_PATH", "./some/import/path")
+		})
+
+		it.After(func() {
+			os.Unsetenv("BP_GO_BUILD_IMPORT_PATH")
+		})
+
+		it("uses the values in the env var", func() {
+			configuration, err := parser.Parse(workingDir)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(configuration).To(Equal(gobuild.BuildConfiguration{
+				Targets:    []string{"."},
+				ImportPath: "./some/import/path",
+			}))
+
+			Expect(targetManager.GenerateDefaultsCall.Receives.WorkingDir).To(Equal(workingDir))
+		})
+	}, spec.Sequential())
+
+	context("when there is a buildpack.yml and environement variables are not set", func() {
+		it.Before(func() {
+			err := ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), nil, 0644)
 			Expect(err).NotTo(HaveOccurred())
 
 			targetManager.CleanAndValidateCall.Returns.StringSlice = []string{"./first", "./second"}
@@ -65,162 +138,89 @@ go:
 			Expect(configuration).To(Equal(gobuild.BuildConfiguration{
 				Targets: []string{"./first", "./second"},
 				Flags: []string{
-					"-first", "value",
-					"-second", "value",
-					"-third", "value",
-					"-fourth", "value",
+					"-first=value",
 				},
 				ImportPath: "some-import-path",
 			}))
 
-			Expect(targetManager.CleanAndValidateCall.Receives.Targets).To(Equal([]string{"first", "./second"}))
+			Expect(buildpackYMLParser.ParseCall.Receives.WorkingDir).To(Equal(workingDir))
+
+			Expect(targetManager.CleanAndValidateCall.Receives.Targets).To(Equal([]string{"./first", "./second"}))
 			Expect(targetManager.CleanAndValidateCall.Receives.WorkingDir).To(Equal(workingDir))
 		})
 	})
 
-	context("when there is no buildpack.yml file", func() {
+	context("when there is a buildpack.yml and environement variables are set", func() {
 		it.Before(func() {
-			targetManager.GenerateDefaultsCall.Returns.StringSlice = []string{workingDir}
-		})
-
-		it("returns a list of default targets and empty list of flags", func() {
-			configuration, err := parser.Parse(workingDir)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(configuration.Targets).To(Equal([]string{workingDir}))
-			Expect(configuration.Flags).To(BeEmpty())
-
-			Expect(targetManager.GenerateDefaultsCall.Receives.WorkingDir).To(Equal(workingDir))
-		})
-
-		context("BP_GO_TARGETS env variable is set", func() {
-			it.Before(func() {
-				os.Setenv("BP_GO_TARGETS", "some/target1:./some/target2")
-				targetManager.CleanAndValidateCall.Returns.StringSlice = []string{"./some/target1", "./some/target2"}
-			})
-
-			it.After(func() {
-				os.Unsetenv("BP_GO_TARGETS")
-			})
-
-			it("uses the values in the env var", func() {
-				configuration, err := parser.Parse(workingDir)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(configuration.Targets).To(Equal([]string{"./some/target1", "./some/target2"}))
-				Expect(configuration.Flags).To(BeEmpty())
-
-				Expect(targetManager.CleanAndValidateCall.Receives.Targets).To(Equal([]string{"some/target1", "./some/target2"}))
-				Expect(targetManager.CleanAndValidateCall.Receives.WorkingDir).To(Equal(workingDir))
-			})
-		})
-	})
-
-	context("when the targets list is empty", func() {
-		it.Before(func() {
-			Expect(ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), []byte(`---
-go:
-  targets: []
-`), 0644)).To(Succeed())
-			targetManager.GenerateDefaultsCall.Returns.StringSlice = []string{"./cmd/first"}
-		})
-
-		it("returns a list of default targets", func() {
-			configuration, err := parser.Parse(workingDir)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(configuration.Targets).To(Equal([]string{"./cmd/first"}))
-
-			Expect(targetManager.GenerateDefaultsCall.Receives.WorkingDir).To(Equal(workingDir))
-		})
-	})
-
-	context("when the build flags reference an env var", func() {
-		it.Before(func() {
-			err := ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), []byte(`---
-go:
-  build:
-    flags:
-    - -first=${SOME_VALUE}
-    - -second=$SOME_OTHER_VALUE
-`), 0644)
-
+			err := ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), nil, 0644)
 			Expect(err).NotTo(HaveOccurred())
 
-			os.Setenv("SOME_VALUE", "some-value")
-			os.Setenv("SOME_OTHER_VALUE", "some-other-value")
+			os.Setenv("BP_GO_BUILD_IMPORT_PATH", "./some/import/path")
+			os.Setenv("BP_GO_TARGETS", "some/target1:./some/target2")
+			os.Setenv("BP_GO_BUILD_FLAGS", `-some-flag=some-value`)
+
+			targetManager.CleanAndValidateCall.Returns.StringSlice = []string{"./some/target1", "./some/target2"}
 		})
 
 		it.After(func() {
-			os.Unsetenv("SOME_VALUE")
-			os.Unsetenv("SOME_OTHER_VALUE")
+			os.Unsetenv("BP_GO_BUILD_IMPORT_PATH")
+			os.Unsetenv("BP_GO_TARGETS")
+			os.Unsetenv("BP_GO_BUILD_FLAGS")
 		})
 
-		it("replaces the targets list with the values in the env var", func() {
+		it("parses the targets and flags from a buildpack.yml but uses the values from the environment variables", func() {
 			configuration, err := parser.Parse(workingDir)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(configuration.Flags).To(Equal([]string{
-				"-first", "some-value",
-				"-second", "some-other-value",
+			Expect(configuration).To(Equal(gobuild.BuildConfiguration{
+				Targets: []string{"./some/target1", "./some/target2"},
+				Flags: []string{
+					"-some-flag=some-value",
+				},
+				ImportPath: "./some/import/path",
 			}))
+
+			Expect(buildpackYMLParser.ParseCall.Receives.WorkingDir).To(Equal(workingDir))
+			Expect(targetManager.CleanAndValidateCall.Receives.Targets).To(Equal([]string{"some/target1", "./some/target2"}))
+			Expect(targetManager.CleanAndValidateCall.Receives.WorkingDir).To(Equal(workingDir))
 		})
-	})
+	}, spec.Sequential())
 
 	context("failure cases", func() {
-		context("when defaults cannot be generated when there is no buildpack.yml and no targets set", func() {
+		context("when the buildpack.yml cannot be stat'd", func() {
 			it.Before(func() {
-				targetManager.GenerateDefaultsCall.Returns.Error = errors.New("no defaults could be found")
-			})
-
-			it("returns an error", func() {
-				_, err := parser.Parse(workingDir)
-				Expect(err).To(MatchError("no defaults could be found"))
-			})
-		})
-
-		context("when targets cannot be cleaned and validated when there is no buildpack.yml but there are targets set", func() {
-			it.Before(func() {
-				os.Setenv("BP_GO_TARGETS", "some/target1")
-				targetManager.CleanAndValidateCall.Returns.Error = errors.New("unable to validate and clean targets")
+				Expect(os.Chmod(workingDir, 0000)).To(Succeed())
 			})
 
 			it.After(func() {
-				os.Unsetenv("BP_GO_TARGETS")
+				Expect(os.Chmod(workingDir, os.ModePerm)).To(Succeed())
 			})
 
 			it("returns an error", func() {
 				_, err := parser.Parse(workingDir)
-				Expect(err).To(MatchError("unable to validate and clean targets"))
-			})
-		})
-
-		context("when the buildpack.yml file cannot be read", func() {
-			it.Before(func() {
-				Expect(ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), nil, 0000)).To(Succeed())
-			})
-
-			it("returns an error", func() {
-				_, err := parser.Parse(workingDir)
-				Expect(err).To(MatchError(ContainSubstring("failed to read buildpack.yml:")))
 				Expect(err).To(MatchError(ContainSubstring("permission denied")))
 			})
 		})
 
-		context("when the buildpack.yml file cannot be parsed", func() {
+		context("buildpack.yml parsing fails", func() {
 			it.Before(func() {
-				Expect(ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), []byte("%%%"), 0644)).To(Succeed())
+				err := ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), nil, 0644)
+				Expect(err).NotTo(HaveOccurred())
+
+				buildpackYMLParser.ParseCall.Returns.Error = errors.New("failed to parse buildpack.yml")
 			})
 
 			it("returns an error", func() {
 				_, err := parser.Parse(workingDir)
-				Expect(err).To(MatchError(ContainSubstring("failed to decode buildpack.yml:")))
-				Expect(err).To(MatchError(ContainSubstring("could not find expected directive name")))
+				Expect(err).To(MatchError("failed to parse buildpack.yml"))
 			})
 		})
 
-		context("when targets cannot be cleaned and validated when there is buildpack.yml and the are targets set by env var", func() {
+		context("go targets fail to be cleaned an validated", func() {
 			it.Before(func() {
-				os.Setenv("BP_GO_TARGETS", "some/target1")
-				targetManager.CleanAndValidateCall.Returns.Error = errors.New("unable to validate and clean targets from env var")
+				os.Setenv("BP_GO_TARGETS", "./some/target")
 
-				Expect(ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), []byte(`---`), 0644)).To(Succeed())
+				targetManager.CleanAndValidateCall.Returns.Error = errors.New("failed to clean and validate targets")
+
 			})
 
 			it.After(func() {
@@ -229,54 +229,34 @@ go:
 
 			it("returns an error", func() {
 				_, err := parser.Parse(workingDir)
-				Expect(err).To(MatchError("unable to validate and clean targets from env var"))
+				Expect(err).To(MatchError("failed to clean and validate targets"))
 			})
-		})
+		}, spec.Sequential())
 
-		context("when targets cannot be cleaned and validated when there is buildpack.yml and the are targets set by buildpack.yml", func() {
+		context("when no targets can be found", func() {
 			it.Before(func() {
-				targetManager.CleanAndValidateCall.Returns.Error = errors.New("unable to validate and clean targets from buildpack.yml")
-
-				Expect(ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), []byte(`---
-go:
-  targets:
-  - ./first
-`), 0644)).To(Succeed())
+				targetManager.GenerateDefaultsCall.Returns.Error = errors.New("failed to default target found")
 			})
 
 			it("returns an error", func() {
 				_, err := parser.Parse(workingDir)
-				Expect(err).To(MatchError("unable to validate and clean targets from buildpack.yml"))
+				Expect(err).To(MatchError("failed to default target found"))
 			})
 		})
 
-		context("when defaults cannot be cleaned generated when there is buildpack.yml", func() {
+		context("when the build flags fail to parse", func() {
 			it.Before(func() {
-				targetManager.GenerateDefaultsCall.Returns.Error = errors.New("no defaults could be found")
+				os.Setenv("BP_GO_BUILD_FLAGS", "\"")
+			})
 
-				Expect(ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), []byte(`---`), 0644)).To(Succeed())
+			it.After(func() {
+				os.Unsetenv("BP_GO_BUILD_FLAGS")
 			})
 
 			it("returns an error", func() {
 				_, err := parser.Parse(workingDir)
-				Expect(err).To(MatchError("no defaults could be found"))
+				Expect(err).To(MatchError(ContainSubstring("invalid command line string")))
 			})
-		})
-
-		context("when a the env var expansion fails", func() {
-			it.Before(func() {
-				Expect(ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), []byte(`---
-go:
-  build:
-    flags:
-    - -first=$&
-`), 0644)).To(Succeed())
-			})
-
-			it("returns an error", func() {
-				_, err := parser.Parse(workingDir)
-				Expect(err).To(MatchError(ContainSubstring("environment variable expansion failed:")))
-			})
-		})
+		}, spec.Sequential())
 	})
 }
