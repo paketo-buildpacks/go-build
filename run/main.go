@@ -6,7 +6,6 @@ import (
 	gobuild "github.com/paketo-buildpacks/go-build"
 	"github.com/paketo-buildpacks/packit"
 	"github.com/paketo-buildpacks/packit/chronos"
-	"github.com/paketo-buildpacks/packit/fs"
 	"github.com/paketo-buildpacks/packit/pexec"
 )
 
@@ -27,7 +26,6 @@ func main() {
 			),
 			gobuild.NewGoPathManager(os.TempDir()),
 			chronos.DefaultClock,
-			fs.NewChecksumCalculator(),
 			logEmitter,
 			gobuild.NewSourceDeleter(),
 		),

@@ -3,7 +3,6 @@ package gobuild_test
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -23,14 +22,14 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
-		layersDir     string
-		workingDir    string
-		cnbDir        string
+		layersDir  string
+		workingDir string
+		cnbDir     string
+		timestamp  time.Time
+		logs       *bytes.Buffer
+
 		buildProcess  *fakes.BuildProcess
 		pathManager   *fakes.PathManager
-		calculator    *fakes.ChecksumCalculator
-		logs          *bytes.Buffer
-		timestamp     time.Time
 		sourceRemover *fakes.SourceRemover
 		parser        *fakes.ConfigurationParser
 
@@ -60,9 +59,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			return timestamp
 		})
 
-		calculator = &fakes.ChecksumCalculator{}
-		calculator.SumCall.Returns.Sha = "some-workspace-sha"
-
 		logs = bytes.NewBuffer(nil)
 
 		sourceRemover = &fakes.SourceRemover{}
@@ -79,7 +75,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			buildProcess,
 			pathManager,
 			clock,
-			calculator,
 			gobuild.NewLogEmitter(logs),
 			sourceRemover,
 		)
@@ -116,9 +111,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Launch:    true,
 					Cache:     false,
 					Metadata: map[string]interface{}{
-						"built_at":      timestamp.Format(time.RFC3339Nano),
-						"command":       "some-start-command",
-						"workspace_sha": "some-workspace-sha",
+						"built_at": timestamp.Format(time.RFC3339Nano),
+						"command":  "some-start-command",
 					},
 				},
 				{
@@ -143,8 +137,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			},
 		}))
 
-		Expect(calculator.SumCall.Receives.Paths).To(Equal([]string{workingDir}))
-
 		Expect(pathManager.SetupCall.Receives.Workspace).To(Equal(workingDir))
 		Expect(pathManager.SetupCall.Receives.ImportPath).To(Equal("some-import-path"))
 
@@ -164,73 +156,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		Expect(logs.String()).To(ContainSubstring("Some Buildpack some-version"))
 		Expect(logs.String()).To(ContainSubstring("Assigning launch processes"))
 		Expect(logs.String()).To(ContainSubstring("web: some-start-command"))
-	})
-
-	context("when the workspace contents have not changed from a previous build", func() {
-		it.Before(func() {
-			layerContent := fmt.Sprintf("launch = true\n[metadata]\ncommand = \"some-start-command\"\nworkspace_sha = \"some-workspace-sha\"\nbuilt_at = %q\n", timestamp.Format(time.RFC3339Nano))
-			Expect(ioutil.WriteFile(filepath.Join(layersDir, "targets.toml"), []byte(layerContent), 0644)).To(Succeed())
-		})
-
-		it("skips the build process", func() {
-			result, err := build(packit.BuildContext{
-				WorkingDir: workingDir,
-				CNBPath:    cnbDir,
-				Stack:      "some-stack",
-				BuildpackInfo: packit.BuildpackInfo{
-					Name:    "Some Buildpack",
-					Version: "some-version",
-				},
-				Layers: packit.Layers{Path: layersDir},
-			})
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(result).To(Equal(packit.BuildResult{
-				Layers: []packit.Layer{
-					{
-						Name:      "targets",
-						Path:      filepath.Join(layersDir, "targets"),
-						SharedEnv: packit.Environment{},
-						BuildEnv:  packit.Environment{},
-						LaunchEnv: packit.Environment{},
-						Build:     false,
-						Launch:    true,
-						Cache:     false,
-						Metadata: map[string]interface{}{
-							"built_at":      timestamp.Format(time.RFC3339Nano),
-							"command":       "some-start-command",
-							"workspace_sha": "some-workspace-sha",
-						},
-					},
-					{
-						Name:      "gocache",
-						Path:      filepath.Join(layersDir, "gocache"),
-						SharedEnv: packit.Environment{},
-						BuildEnv:  packit.Environment{},
-						LaunchEnv: packit.Environment{},
-						Build:     false,
-						Launch:    false,
-						Cache:     true,
-					},
-				},
-				Launch: packit.LaunchMetadata{
-					Processes: []packit.Process{
-						{
-							Type:    "web",
-							Command: "some-start-command",
-							Direct:  false,
-						},
-					},
-				},
-			}))
-
-			Expect(calculator.SumCall.Receives.Paths).To(Equal([]string{workingDir}))
-			Expect(pathManager.SetupCall.CallCount).To(Equal(0))
-			Expect(buildProcess.ExecuteCall.CallCount).To(Equal(0))
-			Expect(pathManager.TeardownCall.CallCount).To(Equal(0))
-
-			Expect(logs.String()).To(ContainSubstring("Reusing cached layer"))
-		})
 	})
 
 	context("when the stack is tiny", func() {
@@ -259,9 +184,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						Launch:    true,
 						Cache:     false,
 						Metadata: map[string]interface{}{
-							"built_at":      timestamp.Format(time.RFC3339Nano),
-							"command":       "some-start-command",
-							"workspace_sha": "some-workspace-sha",
+							"built_at": timestamp.Format(time.RFC3339Nano),
+							"command":  "some-start-command",
 						},
 					},
 					{
@@ -331,26 +255,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			})
 		})
 
-		context("when the working dir cannot be checksummed", func() {
-			it.Before(func() {
-				calculator.SumCall.Returns.Err = errors.New("failed to checksum working dir")
-			})
-
-			it("returns an error", func() {
-				_, err := build(packit.BuildContext{
-					WorkingDir: workingDir,
-					CNBPath:    cnbDir,
-					Stack:      "some-stack",
-					BuildpackInfo: packit.BuildpackInfo{
-						Name:    "Some Buildpack",
-						Version: "some-version",
-					},
-					Layers: packit.Layers{Path: layersDir},
-				})
-				Expect(err).To(MatchError("failed to checksum working dir"))
-			})
-		})
-
 		context("when the go path cannot be setup", func() {
 			it.Before(func() {
 				pathManager.SetupCall.Returns.Err = errors.New("failed to setup go path")
@@ -408,27 +312,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Layers: packit.Layers{Path: layersDir},
 				})
 				Expect(err).To(MatchError("failed to teardown go path"))
-			})
-		})
-
-		context("when cached targets layer is missing a command", func() {
-			it.Before(func() {
-				layerContent := fmt.Sprintf("launch = true\n[metadata]\nworkspace_sha = \"some-workspace-sha\"\nbuilt_at = %q\n", timestamp.Format(time.RFC3339Nano))
-				Expect(ioutil.WriteFile(filepath.Join(layersDir, "targets.toml"), []byte(layerContent), 0644)).To(Succeed())
-			})
-
-			it("returns an error", func() {
-				_, err := build(packit.BuildContext{
-					WorkingDir: workingDir,
-					CNBPath:    cnbDir,
-					Stack:      "some-stack",
-					BuildpackInfo: packit.BuildpackInfo{
-						Name:    "Some Buildpack",
-						Version: "some-version",
-					},
-					Layers: packit.Layers{Path: layersDir},
-				})
-				Expect(err).To(MatchError("failed to identify start command from reused layer metadata"))
 			})
 		})
 

@@ -20,11 +20,6 @@ type PathManager interface {
 	Teardown(goPath string) error
 }
 
-//go:generate faux --interface ChecksumCalculator --output fakes/checksum_calculator.go
-type ChecksumCalculator interface {
-	Sum(paths ...string) (sha string, err error)
-}
-
 //go:generate faux --interface SourceRemover --output fakes/source_remover.go
 type SourceRemover interface {
 	Clear(path string) error
@@ -35,7 +30,6 @@ func Build(
 	buildProcess BuildProcess,
 	pathManager PathManager,
 	clock chronos.Clock,
-	checksumCalculator ChecksumCalculator,
 	logs LogEmitter,
 	sourceRemover SourceRemover,
 ) packit.BuildFunc {
@@ -57,50 +51,38 @@ func Build(
 
 		goCacheLayer.Cache = true
 
-		checksum, err := checksumCalculator.Sum(context.WorkingDir)
+		// Parse the BuildConfiguration from the environment again since a prior
+		// step may have augmented the configuration.
+		configuration, err := parser.Parse(context.WorkingDir)
+		if err != nil {
+			return packit.BuildResult{}, packit.Fail.WithMessage("failed to parse build configuration: %w", err)
+		}
+
+		goPath, path, err := pathManager.Setup(context.WorkingDir, configuration.ImportPath)
 		if err != nil {
 			return packit.BuildResult{}, err
 		}
 
-		previousSum, _ := targetsLayer.Metadata[WorkspaceSHAKey].(string)
-		if checksum != previousSum {
-			// Parse the BuildConfiguration from the environment again since a prior
-			// step may have augmented the configuration.
-			configuration, err := parser.Parse(context.WorkingDir)
-			if err != nil {
-				return packit.BuildResult{}, packit.Fail.WithMessage("failed to parse build configuration: %w", err)
-			}
+		command, err := buildProcess.Execute(GoBuildConfiguration{
+			Workspace: path,
+			Output:    filepath.Join(targetsLayer.Path, "bin"),
+			GoPath:    goPath,
+			GoCache:   goCacheLayer.Path,
+			Flags:     configuration.Flags,
+			Targets:   configuration.Targets,
+		})
+		if err != nil {
+			return packit.BuildResult{}, err
+		}
 
-			goPath, path, err := pathManager.Setup(context.WorkingDir, configuration.ImportPath)
-			if err != nil {
-				return packit.BuildResult{}, err
-			}
+		err = pathManager.Teardown(goPath)
+		if err != nil {
+			return packit.BuildResult{}, err
+		}
 
-			command, err := buildProcess.Execute(GoBuildConfiguration{
-				Workspace: path,
-				Output:    filepath.Join(targetsLayer.Path, "bin"),
-				GoPath:    goPath,
-				GoCache:   goCacheLayer.Path,
-				Flags:     configuration.Flags,
-				Targets:   configuration.Targets,
-			})
-			if err != nil {
-				return packit.BuildResult{}, err
-			}
-
-			err = pathManager.Teardown(goPath)
-			if err != nil {
-				return packit.BuildResult{}, err
-			}
-
-			targetsLayer.Metadata = map[string]interface{}{
-				WorkspaceSHAKey: checksum,
-				"built_at":      clock.Now().Format(time.RFC3339Nano),
-				"command":       command,
-			}
-		} else {
-			logs.Process("Reusing cached layer %s", targetsLayer.Path)
-			logs.Break()
+		targetsLayer.Metadata = map[string]interface{}{
+			"built_at": clock.Now().Format(time.RFC3339Nano),
+			"command":  command,
 		}
 
 		command, ok := targetsLayer.Metadata["command"].(string)
