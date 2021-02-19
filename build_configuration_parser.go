@@ -16,7 +16,7 @@ type TargetManager interface {
 
 //go:generate faux --interface BuildpackYMLParser --output fakes/buildpack_yml_parser.go
 type BuildpackYMLParser interface {
-	Parse(workingDir string) (BuildConfiguration, error)
+	Parse(buildpackVersion, workingDir string) (BuildConfiguration, error)
 }
 
 type BuildConfiguration struct {
@@ -37,7 +37,7 @@ func NewBuildConfigurationParser(targetManager TargetManager, buildpackYMLParser
 	}
 }
 
-func (p BuildConfigurationParser) Parse(workingDir string) (BuildConfiguration, error) {
+func (p BuildConfigurationParser) Parse(buildpackVersion, workingDir string) (BuildConfiguration, error) {
 	var buildConfiguration BuildConfiguration
 
 	_, err := os.Stat(filepath.Join(workingDir, "buildpack.yml"))
@@ -46,7 +46,7 @@ func (p BuildConfigurationParser) Parse(workingDir string) (BuildConfiguration, 
 			return BuildConfiguration{}, err
 		}
 	} else {
-		buildConfiguration, err = p.buildpackYMLParser.Parse(workingDir)
+		buildConfiguration, err = p.buildpackYMLParser.Parse(buildpackVersion, workingDir)
 		if err != nil {
 			return BuildConfiguration{}, err
 		}

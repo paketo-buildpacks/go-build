@@ -51,7 +51,7 @@ go:
 
 	context("Parse", func() {
 		it("parses the buildpack and returns a build configuration", func() {
-			config, err := goBuildpackYMLParser.Parse(workingDir)
+			config, err := goBuildpackYMLParser.Parse("1.2.3", workingDir)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(config).To(Equal(gobuild.BuildConfiguration{
@@ -64,7 +64,7 @@ go:
 				},
 				ImportPath: "some-import-path",
 			}))
-			Expect(logs.String()).To(ContainSubstring("WARNING: Setting the Go Build configurations such as targets, build flags, and import path through buildpack.yml will be deprecated soon in Go Build Buildpack v1.0.0."))
+			Expect(logs.String()).To(ContainSubstring("WARNING: Setting the Go Build configurations such as targets, build flags, and import path through buildpack.yml will be deprecated soon in Go Build Buildpack v2.0.0."))
 			Expect(logs.String()).To(ContainSubstring("Please specify these configuration options through environment variables instead. See README.md or the documentation on paketo.io for more information."))
 		})
 
@@ -88,7 +88,7 @@ go:
 			})
 
 			it("interpolates the env vars those into the flags", func() {
-				config, err := goBuildpackYMLParser.Parse(workingDir)
+				config, err := goBuildpackYMLParser.Parse("1.2.3", workingDir)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(config).To(Equal(gobuild.BuildConfiguration{
@@ -113,7 +113,7 @@ not-go:
 			})
 
 			it("does not return a deprecation message", func() {
-				config, err := goBuildpackYMLParser.Parse(workingDir)
+				config, err := goBuildpackYMLParser.Parse("1.2.3", workingDir)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(config).To(Equal(gobuild.BuildConfiguration{}))
@@ -128,7 +128,7 @@ not-go:
 				})
 
 				it("returns an error", func() {
-					_, err := goBuildpackYMLParser.Parse(workingDir)
+					_, err := goBuildpackYMLParser.Parse("1.2.3", workingDir)
 					Expect(err).To(MatchError(ContainSubstring("failed to read buildpack.yml")))
 					Expect(err).To(MatchError(ContainSubstring("permission denied")))
 				})
@@ -140,7 +140,7 @@ not-go:
 				})
 
 				it("returns an error", func() {
-					_, err := goBuildpackYMLParser.Parse(workingDir)
+					_, err := goBuildpackYMLParser.Parse("1.2.3", workingDir)
 					Expect(err).To(MatchError(ContainSubstring("failed to decode buildpack.yml")))
 					Expect(err).To(MatchError(ContainSubstring("could not find expected directive name")))
 				})
@@ -157,7 +157,7 @@ go:
 				})
 
 				it("returns an error", func() {
-					_, err := goBuildpackYMLParser.Parse(workingDir)
+					_, err := goBuildpackYMLParser.Parse("1.2.3", workingDir)
 					Expect(err).To(MatchError(ContainSubstring("environment variable expansion failed:")))
 				})
 			})

@@ -6,12 +6,12 @@ import (
 
 //go:generate faux --interface ConfigurationParser --output fakes/configuration_parser.go
 type ConfigurationParser interface {
-	Parse(workingDir string) (BuildConfiguration, error)
+	Parse(buildpackVersion, workingDir string) (BuildConfiguration, error)
 }
 
 func Detect(parser ConfigurationParser) packit.DetectFunc {
 	return func(context packit.DetectContext) (packit.DetectResult, error) {
-		if _, err := parser.Parse(context.WorkingDir); err != nil {
+		if _, err := parser.Parse(context.BuildpackInfo.Version, context.WorkingDir); err != nil {
 			return packit.DetectResult{}, packit.Fail.WithMessage("failed to parse build configuration: %w", err)
 		}
 

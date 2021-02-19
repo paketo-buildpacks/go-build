@@ -35,6 +35,9 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 	it("detects", func() {
 		result, err := detect(packit.DetectContext{
 			WorkingDir: workingDir,
+			BuildpackInfo: packit.BuildpackInfo{
+				Version: "some-buildpack-version",
+			},
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.Plan).To(Equal(packit.BuildPlan{
@@ -46,6 +49,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 			}},
 		}))
 
+		Expect(parser.ParseCall.Receives.BuildpackVersion).To(Equal("some-buildpack-version"))
 		Expect(parser.ParseCall.Receives.WorkingDir).To(Equal(workingDir))
 	})
 
@@ -67,8 +71,6 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 					},
 				}},
 			}))
-
-			Expect(parser.ParseCall.Receives.WorkingDir).To(Equal(workingDir))
 		})
 	})
 
@@ -90,8 +92,6 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 					},
 				}},
 			}))
-
-			Expect(parser.ParseCall.Receives.WorkingDir).To(Equal(workingDir))
 		})
 	})
 
@@ -116,8 +116,6 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 					},
 				}},
 			}))
-
-			Expect(parser.ParseCall.Receives.WorkingDir).To(Equal(workingDir))
 		})
 	})
 
