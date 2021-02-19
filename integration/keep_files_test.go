@@ -2,8 +2,6 @@ package integration_test
 
 import (
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -74,17 +72,15 @@ func testKeepFiles(t *testing.T, context spec.G, it spec.S) {
 				Execute(image.ID)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(container).Should(BeAvailable())
-
-			response, err := http.Get(fmt.Sprintf("http://localhost:%s", container.HostPort("8080")))
-			Expect(err).NotTo(HaveOccurred())
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
-
-			content, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(string(content)).To(ContainSubstring("go1.15"))
-			Expect(string(content)).To(ContainSubstring("/workspace contents: [/workspace/assets /workspace/static-file]"))
-			Expect(string(content)).To(ContainSubstring("file contents: Hello world!"))
+			Eventually(container).Should(
+				Serve(
+					SatisfyAll(
+						ContainSubstring("go1.15"),
+						ContainSubstring("/workspace contents: [/workspace/assets /workspace/static-file]"),
+						ContainSubstring("file contents: Hello world!"),
+					),
+				).OnPort(8080),
+			)
 		})
 	})
 }
