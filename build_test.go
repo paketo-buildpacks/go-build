@@ -137,6 +137,9 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			},
 		}))
 
+		Expect(parser.ParseCall.Receives.BuildpackVersion).To(Equal("some-version"))
+		Expect(parser.ParseCall.Receives.WorkingDir).To(Equal(workingDir))
+
 		Expect(pathManager.SetupCall.Receives.Workspace).To(Equal(workingDir))
 		Expect(pathManager.SetupCall.Receives.ImportPath).To(Equal("some-import-path"))
 

@@ -61,7 +61,7 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("uses the values in the env var", func() {
-			configuration, err := parser.Parse(workingDir)
+			configuration, err := parser.Parse("1.2.3", workingDir)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(configuration).To(Equal(gobuild.BuildConfiguration{
 				Targets: []string{"./some/target1", "./some/target2"},
@@ -86,7 +86,7 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("uses the values in the env var", func() {
-			configuration, err := parser.Parse(workingDir)
+			configuration, err := parser.Parse("1.2.3", workingDir)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(configuration).To(Equal(gobuild.BuildConfiguration{
 				Targets: []string{"."},
@@ -113,7 +113,7 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("uses the values in the env var", func() {
-			configuration, err := parser.Parse(workingDir)
+			configuration, err := parser.Parse("1.2.3", workingDir)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(configuration).To(Equal(gobuild.BuildConfiguration{
 				Targets:    []string{"."},
@@ -133,7 +133,7 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("parses the targets and flags from a buildpack.yml", func() {
-			configuration, err := parser.Parse(workingDir)
+			configuration, err := parser.Parse("1.2.3", workingDir)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(configuration).To(Equal(gobuild.BuildConfiguration{
 				Targets: []string{"./first", "./second"},
@@ -169,7 +169,7 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("parses the targets and flags from a buildpack.yml but uses the values from the environment variables", func() {
-			configuration, err := parser.Parse(workingDir)
+			configuration, err := parser.Parse("1.2.3", workingDir)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(configuration).To(Equal(gobuild.BuildConfiguration{
 				Targets: []string{"./some/target1", "./some/target2"},
@@ -196,7 +196,7 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("returns an error", func() {
-				_, err := parser.Parse(workingDir)
+				_, err := parser.Parse("1.2.3", workingDir)
 				Expect(err).To(MatchError(ContainSubstring("permission denied")))
 			})
 		})
@@ -210,7 +210,7 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("returns an error", func() {
-				_, err := parser.Parse(workingDir)
+				_, err := parser.Parse("1.2.3", workingDir)
 				Expect(err).To(MatchError("failed to parse buildpack.yml"))
 			})
 		})
@@ -228,7 +228,7 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("returns an error", func() {
-				_, err := parser.Parse(workingDir)
+				_, err := parser.Parse("1.2.3", workingDir)
 				Expect(err).To(MatchError("failed to clean and validate targets"))
 			})
 		}, spec.Sequential())
@@ -239,7 +239,7 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("returns an error", func() {
-				_, err := parser.Parse(workingDir)
+				_, err := parser.Parse("1.2.3", workingDir)
 				Expect(err).To(MatchError("failed to default target found"))
 			})
 		})
@@ -254,7 +254,7 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("returns an error", func() {
-				_, err := parser.Parse(workingDir)
+				_, err := parser.Parse("1.2.3", workingDir)
 				Expect(err).To(MatchError(ContainSubstring("invalid command line string")))
 			})
 		}, spec.Sequential())
