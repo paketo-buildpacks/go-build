@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	gobuild "github.com/paketo-buildpacks/go-build"
+	"github.com/paketo-buildpacks/packit/scribe"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
@@ -42,7 +43,7 @@ go:
 `), 0644)).To(Succeed())
 
 		logs = bytes.NewBuffer(nil)
-		goBuildpackYMLParser = gobuild.NewGoBuildpackYMLParser(gobuild.NewLogEmitter(logs))
+		goBuildpackYMLParser = gobuild.NewGoBuildpackYMLParser(scribe.NewEmitter(logs))
 	})
 
 	it.After(func() {
