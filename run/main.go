@@ -7,10 +7,11 @@ import (
 	"github.com/paketo-buildpacks/packit"
 	"github.com/paketo-buildpacks/packit/chronos"
 	"github.com/paketo-buildpacks/packit/pexec"
+	"github.com/paketo-buildpacks/packit/scribe"
 )
 
 func main() {
-	logEmitter := gobuild.NewLogEmitter(os.Stdout)
+	logEmitter := scribe.NewEmitter(os.Stdout)
 	configParser := gobuild.NewBuildConfigurationParser(gobuild.NewGoTargetManager(), gobuild.NewGoBuildpackYMLParser(logEmitter))
 
 	packit.Run(
