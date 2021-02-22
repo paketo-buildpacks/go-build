@@ -9,6 +9,7 @@ import (
 	"github.com/buildkite/interpolate"
 	"github.com/paketo-buildpacks/packit/scribe"
 	"gopkg.in/yaml.v2"
+	"github.com/Masterminds/semver"
 )
 
 type GoBuildpackYMLParser struct {
@@ -21,7 +22,7 @@ func NewGoBuildpackYMLParser(logger scribe.Emitter) GoBuildpackYMLParser {
 	}
 }
 
-func (p GoBuildpackYMLParser) Parse(workingDir string) (BuildConfiguration, error) {
+func (p GoBuildpackYMLParser) Parse(buildpackVersion, workingDir string) (BuildConfiguration, error) {
 	file, err := os.Open(filepath.Join(workingDir, "buildpack.yml"))
 	if err != nil {
 		return BuildConfiguration{}, fmt.Errorf("failed to read buildpack.yml: %w", err)
@@ -61,7 +62,8 @@ func (p GoBuildpackYMLParser) Parse(workingDir string) (BuildConfiguration, erro
 	}
 
 	if buildConfiguration.Targets != nil || buildConfiguration.Flags != nil || buildConfiguration.ImportPath != "" {
-		p.logger.Process("WARNING: Setting the Go Build configurations such as targets, build flags, and import path through buildpack.yml will be deprecated soon in Go Build Buildpack v1.0.0.")
+		nextMajorVersion := semver.MustParse(buildpackVersion).IncMajor()
+		p.logger.Process("WARNING: Setting the Go Build configurations such as targets, build flags, and import path through buildpack.yml will be deprecated soon in Go Build Buildpack v%s.", nextMajorVersion.String())
 		p.logger.Process("Please specify these configuration options through environment variables instead. See README.md or the documentation on paketo.io for more information.")
 		p.logger.Break()
 	}

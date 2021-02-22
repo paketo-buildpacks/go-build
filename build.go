@@ -54,7 +54,7 @@ func Build(
 
 		// Parse the BuildConfiguration from the environment again since a prior
 		// step may have augmented the configuration.
-		configuration, err := parser.Parse(context.WorkingDir)
+		configuration, err := parser.Parse(context.BuildpackInfo.Version, context.WorkingDir)
 		if err != nil {
 			return packit.BuildResult{}, packit.Fail.WithMessage("failed to parse build configuration: %w", err)
 		}

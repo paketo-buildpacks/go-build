@@ -84,7 +84,7 @@ go:
 
 			Expect(logs).To(ContainLines(
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
-				"  WARNING: Setting the Go Build configurations such as targets, build flags, and import path through buildpack.yml will be deprecated soon in Go Build Buildpack v1.0.0.",
+				"  WARNING: Setting the Go Build configurations such as targets, build flags, and import path through buildpack.yml will be deprecated soon in Go Build Buildpack v2.0.0.",
 				"  Please specify these configuration options through environment variables instead. See README.md or the documentation on paketo.io for more information.",
 				"",
 				"  Executing build process",
@@ -121,7 +121,7 @@ go:
 
 				Expect(logs).To(ContainLines(
 					MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
-					"  WARNING: Setting the Go Build configurations such as targets, build flags, and import path through buildpack.yml will be deprecated soon in Go Build Buildpack v1.0.0.",
+					"  WARNING: Setting the Go Build configurations such as targets, build flags, and import path through buildpack.yml will be deprecated soon in Go Build Buildpack v2.0.0.",
 					"  Please specify these configuration options through environment variables instead. See README.md or the documentation on paketo.io for more information.",
 					"",
 					"  Executing build process",
