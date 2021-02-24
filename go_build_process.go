@@ -13,7 +13,6 @@ import (
 
 	"github.com/paketo-buildpacks/packit/chronos"
 	"github.com/paketo-buildpacks/packit/pexec"
-	"github.com/paketo-buildpacks/packit/scribe"
 )
 
 //go:generate faux --interface Executable --output fakes/executable.go
@@ -32,11 +31,11 @@ type GoBuildConfiguration struct {
 
 type GoBuildProcess struct {
 	executable Executable
-	logs       scribe.Emitter
+	logs       LogEmitter
 	clock      chronos.Clock
 }
 
-func NewGoBuildProcess(executable Executable, logs scribe.Emitter, clock chronos.Clock) GoBuildProcess {
+func NewGoBuildProcess(executable Executable, logs LogEmitter, clock chronos.Clock) GoBuildProcess {
 	return GoBuildProcess{
 		executable: executable,
 		logs:       logs,
@@ -44,12 +43,12 @@ func NewGoBuildProcess(executable Executable, logs scribe.Emitter, clock chronos
 	}
 }
 
-func (p GoBuildProcess) Execute(config GoBuildConfiguration) (string, error) {
+func (p GoBuildProcess) Execute(config GoBuildConfiguration) ([]string, error) {
 	p.logs.Process("Executing build process")
 
 	err := os.MkdirAll(config.Output, os.ModePerm)
 	if err != nil {
-		return "", fmt.Errorf("failed to create targets output directory: %w", err)
+		return nil, fmt.Errorf("failed to create targets output directory: %w", err)
 	}
 
 	contains := func(flags []string, match string) bool {
@@ -94,7 +93,7 @@ func (p GoBuildProcess) Execute(config GoBuildConfiguration) (string, error) {
 		p.logs.Action("Failed after %s", duration.Round(time.Millisecond))
 		p.logs.Detail(buffer.String())
 
-		return "", fmt.Errorf("failed to execute 'go build': %w", err)
+		return nil, fmt.Errorf("failed to execute 'go build': %w", err)
 	}
 
 	p.logs.Action("Completed in %s", duration.Round(time.Millisecond))
@@ -102,14 +101,14 @@ func (p GoBuildProcess) Execute(config GoBuildConfiguration) (string, error) {
 
 	paths, err := filepath.Glob(fmt.Sprintf("%s/*", config.Output))
 	if err != nil {
-		return "", fmt.Errorf("failed to list targets: %w", err)
+		return nil, fmt.Errorf("failed to list targets: %w", err)
 	}
 
 	if len(paths) == 0 {
-		return "", errors.New("failed to determine go executable start command")
+		return nil, errors.New("failed to determine go executable start command")
 	}
 
-	return paths[0], nil
+	return paths, nil
 }
 
 func formatArg(arg string) string {

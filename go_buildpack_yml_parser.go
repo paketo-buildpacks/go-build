@@ -6,17 +6,16 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/buildkite/interpolate"
-	"github.com/paketo-buildpacks/packit/scribe"
-	"gopkg.in/yaml.v2"
 	"github.com/Masterminds/semver"
+	"github.com/buildkite/interpolate"
+	"gopkg.in/yaml.v2"
 )
 
 type GoBuildpackYMLParser struct {
-	logger scribe.Emitter
+	logger LogEmitter
 }
 
-func NewGoBuildpackYMLParser(logger scribe.Emitter) GoBuildpackYMLParser {
+func NewGoBuildpackYMLParser(logger LogEmitter) GoBuildpackYMLParser {
 	return GoBuildpackYMLParser{
 		logger: logger,
 	}

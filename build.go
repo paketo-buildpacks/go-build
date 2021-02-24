@@ -1,18 +1,16 @@
 package gobuild
 
 import (
-	"errors"
 	"path/filepath"
 	"time"
 
 	"github.com/paketo-buildpacks/packit"
 	"github.com/paketo-buildpacks/packit/chronos"
-	"github.com/paketo-buildpacks/packit/scribe"
 )
 
 //go:generate faux --interface BuildProcess --output fakes/build_process.go
 type BuildProcess interface {
-	Execute(config GoBuildConfiguration) (command string, err error)
+	Execute(config GoBuildConfiguration) (binaries []string, err error)
 }
 
 //go:generate faux --interface PathManager --output fakes/path_manager.go
@@ -31,7 +29,7 @@ func Build(
 	buildProcess BuildProcess,
 	pathManager PathManager,
 	clock chronos.Clock,
-	logs scribe.Emitter,
+	logs LogEmitter,
 	sourceRemover SourceRemover,
 ) packit.BuildFunc {
 
@@ -64,7 +62,7 @@ func Build(
 			return packit.BuildResult{}, err
 		}
 
-		command, err := buildProcess.Execute(GoBuildConfiguration{
+		binaries, err := buildProcess.Execute(GoBuildConfiguration{
 			Workspace: path,
 			Output:    filepath.Join(targetsLayer.Path, "bin"),
 			GoPath:    goPath,
@@ -83,12 +81,6 @@ func Build(
 
 		targetsLayer.Metadata = map[string]interface{}{
 			"built_at": clock.Now().Format(time.RFC3339Nano),
-			"command":  command,
-		}
-
-		command, ok := targetsLayer.Metadata["command"].(string)
-		if !ok {
-			return packit.BuildResult{}, errors.New("failed to identify start command from reused layer metadata")
 		}
 
 		err = sourceRemover.Clear(context.WorkingDir)
@@ -96,19 +88,29 @@ func Build(
 			return packit.BuildResult{}, err
 		}
 
+		processes := []packit.Process{
+			{
+				Type:    "web",
+				Command: binaries[0],
+				Direct:  context.Stack == TinyStackName,
+			},
+		}
+
+		for _, binary := range binaries {
+			processes = append(processes, packit.Process{
+				Type:    filepath.Base(binary),
+				Command: binary,
+				Direct:  context.Stack == TinyStackName,
+			})
+		}
+
 		logs.Process("Assigning launch processes")
-		logs.Subprocess("web: %s", command)
+		logs.ListProcesses(processes)
 
 		return packit.BuildResult{
 			Layers: []packit.Layer{targetsLayer, goCacheLayer},
 			Launch: packit.LaunchMetadata{
-				Processes: []packit.Process{
-					{
-						Type:    "web",
-						Command: command,
-						Direct:  context.Stack == TinyStackName,
-					},
-				},
+				Processes: processes,
 			},
 		}, nil
 	}

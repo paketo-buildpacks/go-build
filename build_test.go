@@ -13,7 +13,6 @@ import (
 	"github.com/paketo-buildpacks/go-build/fakes"
 	"github.com/paketo-buildpacks/packit"
 	"github.com/paketo-buildpacks/packit/chronos"
-	"github.com/paketo-buildpacks/packit/scribe"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
@@ -49,7 +48,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		Expect(err).NotTo(HaveOccurred())
 
 		buildProcess = &fakes.BuildProcess{}
-		buildProcess.ExecuteCall.Returns.Command = "some-start-command"
+		buildProcess.ExecuteCall.Returns.Binaries = []string{"path/some-start-command", "path/another-start-command"}
 
 		pathManager = &fakes.PathManager{}
 		pathManager.SetupCall.Returns.GoPath = "some-go-path"
@@ -76,7 +75,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			buildProcess,
 			pathManager,
 			clock,
-			scribe.NewEmitter(logs),
+			gobuild.NewLogEmitter(logs),
 			sourceRemover,
 		)
 	})
@@ -113,7 +112,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Cache:     false,
 					Metadata: map[string]interface{}{
 						"built_at": timestamp.Format(time.RFC3339Nano),
-						"command":  "some-start-command",
 					},
 				},
 				{
@@ -131,7 +129,17 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 				Processes: []packit.Process{
 					{
 						Type:    "web",
-						Command: "some-start-command",
+						Command: "path/some-start-command",
+						Direct:  false,
+					},
+					{
+						Type:    "some-start-command",
+						Command: "path/some-start-command",
+						Direct:  false,
+					},
+					{
+						Type:    "another-start-command",
+						Command: "path/another-start-command",
 						Direct:  false,
 					},
 				},
@@ -159,7 +167,9 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 		Expect(logs.String()).To(ContainSubstring("Some Buildpack some-version"))
 		Expect(logs.String()).To(ContainSubstring("Assigning launch processes"))
-		Expect(logs.String()).To(ContainSubstring("web: some-start-command"))
+		Expect(logs.String()).To(ContainSubstring("web: path/some-start-command"))
+		Expect(logs.String()).To(ContainSubstring("some-start-command: path/some-start-command"))
+		Expect(logs.String()).To(ContainSubstring("another-start-command: path/another-start-command"))
 	})
 
 	context("when the stack is tiny", func() {
@@ -189,7 +199,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						Cache:     false,
 						Metadata: map[string]interface{}{
 							"built_at": timestamp.Format(time.RFC3339Nano),
-							"command":  "some-start-command",
 						},
 					},
 					{
@@ -207,7 +216,17 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Processes: []packit.Process{
 						{
 							Type:    "web",
-							Command: "some-start-command",
+							Command: "path/some-start-command",
+							Direct:  true,
+						},
+						{
+							Type:    "some-start-command",
+							Command: "path/some-start-command",
+							Direct:  true,
+						},
+						{
+							Type:    "another-start-command",
+							Command: "path/another-start-command",
 							Direct:  true,
 						},
 					},
