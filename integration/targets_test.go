@@ -73,7 +73,7 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 				Execute(image.ID)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(container).Should(Serve(ContainSubstring("go1.15")).OnPort(8080))
+			Eventually(container).Should(Serve(ContainSubstring("first: go1.15")).OnPort(8080))
 
 			Expect(logs).To(ContainLines(
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
@@ -83,7 +83,34 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 				"",
 				"  Assigning launch processes",
 				fmt.Sprintf("    web: /layers/%s/targets/bin/first", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+				fmt.Sprintf("    first: /layers/%s/targets/bin/first", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+				fmt.Sprintf("    second: /layers/%s/targets/bin/second", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 			))
+		})
+
+		it("the other binary can be accessed using it's name as an entrypoint", func() {
+			var err error
+			var logs fmt.Stringer
+			image, logs, err = pack.Build.
+				WithPullPolicy("never").
+				WithEnv(map[string]string{"BP_GO_TARGETS": "first:./second"}).
+				WithBuildpacks(
+					settings.Buildpacks.GoDist.Online,
+					settings.Buildpacks.GoBuild.Online,
+				).
+				Execute(name, source)
+			Expect(err).ToNot(HaveOccurred(), logs.String)
+
+			container, err = docker.Container.Run.
+				WithEnv(map[string]string{"PORT": "8080"}).
+				WithPublish("8080").
+				WithPublishAll().
+				WithEntrypoint("second").
+				Execute(image.ID)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(container).Should(Serve(ContainSubstring("second: go1.15")).OnPort(8080))
+
 		})
 	})
 }

@@ -14,14 +14,14 @@ type BuildProcess struct {
 			Config gobuild.GoBuildConfiguration
 		}
 		Returns struct {
-			Command string
-			Err     error
+			Binaries []string
+			Err      error
 		}
-		Stub func(gobuild.GoBuildConfiguration) (string, error)
+		Stub func(gobuild.GoBuildConfiguration) ([]string, error)
 	}
 }
 
-func (f *BuildProcess) Execute(param1 gobuild.GoBuildConfiguration) (string, error) {
+func (f *BuildProcess) Execute(param1 gobuild.GoBuildConfiguration) ([]string, error) {
 	f.ExecuteCall.Lock()
 	defer f.ExecuteCall.Unlock()
 	f.ExecuteCall.CallCount++
@@ -29,5 +29,5 @@ func (f *BuildProcess) Execute(param1 gobuild.GoBuildConfiguration) (string, err
 	if f.ExecuteCall.Stub != nil {
 		return f.ExecuteCall.Stub(param1)
 	}
-	return f.ExecuteCall.Returns.Command, f.ExecuteCall.Returns.Err
+	return f.ExecuteCall.Returns.Binaries, f.ExecuteCall.Returns.Err
 }

@@ -14,7 +14,6 @@ import (
 	"github.com/paketo-buildpacks/go-build/fakes"
 	"github.com/paketo-buildpacks/packit/chronos"
 	"github.com/paketo-buildpacks/packit/pexec"
-	"github.com/paketo-buildpacks/packit/scribe"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
@@ -82,7 +81,7 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 			return t
 		})
 
-		buildProcess = gobuild.NewGoBuildProcess(executable, scribe.NewEmitter(logs), clock)
+		buildProcess = gobuild.NewGoBuildProcess(executable, gobuild.NewLogEmitter(logs), clock)
 	})
 
 	it.After(func() {
@@ -93,7 +92,7 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	it("executes the go build process", func() {
-		command, err := buildProcess.Execute(gobuild.GoBuildConfiguration{
+		binaries, err := buildProcess.Execute(gobuild.GoBuildConfiguration{
 			Workspace: workspacePath,
 			Output:    filepath.Join(layerPath, "bin"),
 			GoPath:    goPath,
@@ -101,7 +100,11 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 			Targets:   []string{"./some-target", "./other-target"},
 		})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(command).To(Equal(filepath.Join(layerPath, "bin", "a_command")))
+		Expect(binaries).To(Equal([]string{
+			filepath.Join(layerPath, "bin", "a_command"),
+			filepath.Join(layerPath, "bin", "b_command"),
+			filepath.Join(layerPath, "bin", "c_command"),
+		}))
 
 		Expect(filepath.Join(layerPath, "bin")).To(BeADirectory())
 
@@ -127,7 +130,7 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("executes the go build process with those flags", func() {
-			command, err := buildProcess.Execute(gobuild.GoBuildConfiguration{
+			binaries, err := buildProcess.Execute(gobuild.GoBuildConfiguration{
 				Workspace: workspacePath,
 				Output:    filepath.Join(layerPath, "bin"),
 				GoCache:   goCache,
@@ -135,7 +138,11 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 				Flags:     []string{"-buildmode", "default", "-ldflags", "-X main.variable=some-value", "-mod", "mod"},
 			})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(command).To(Equal(filepath.Join(layerPath, "bin", "a_command")))
+			Expect(binaries).To(Equal([]string{
+				filepath.Join(layerPath, "bin", "a_command"),
+				filepath.Join(layerPath, "bin", "b_command"),
+				filepath.Join(layerPath, "bin", "c_command"),
+			}))
 
 			Expect(filepath.Join(layerPath, "bin")).To(BeADirectory())
 
@@ -163,7 +170,7 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("executes the go build process without setting GOPATH", func() {
-			command, err := buildProcess.Execute(gobuild.GoBuildConfiguration{
+			binaries, err := buildProcess.Execute(gobuild.GoBuildConfiguration{
 				Workspace: workspacePath,
 				Output:    filepath.Join(layerPath, "bin"),
 				GoPath:    "",
@@ -171,7 +178,11 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 				Targets:   []string{"./some-target", "./other-target"},
 			})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(command).To(Equal(filepath.Join(layerPath, "bin", "a_command")))
+			Expect(binaries).To(Equal([]string{
+				filepath.Join(layerPath, "bin", "a_command"),
+				filepath.Join(layerPath, "bin", "b_command"),
+				filepath.Join(layerPath, "bin", "c_command"),
+			}))
 
 			Expect(filepath.Join(layerPath, "bin")).To(BeADirectory())
 
