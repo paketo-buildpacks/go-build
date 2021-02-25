@@ -2,6 +2,7 @@ package gobuild
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -99,9 +100,31 @@ func (p GoBuildProcess) Execute(config GoBuildConfiguration) ([]string, error) {
 	p.logs.Action("Completed in %s", duration.Round(time.Millisecond))
 	p.logs.Break()
 
-	paths, err := filepath.Glob(fmt.Sprintf("%s/*", config.Output))
-	if err != nil {
-		return nil, fmt.Errorf("failed to list targets: %w", err)
+	var paths []string
+	for _, target := range config.Targets {
+		buffer = bytes.NewBuffer(nil)
+		err := p.executable.Execute(pexec.Execution{
+			Args:   []string{"list", "--json", target},
+			Dir:    config.Workspace,
+			Env:    env,
+			Stdout: buffer,
+			Stderr: buffer,
+		})
+		if err != nil {
+			p.logs.Detail(buffer.String())
+
+			return nil, fmt.Errorf("failed to execute 'go list': %w", err)
+		}
+
+		var list struct {
+			ImportPath string `json:"ImportPath"`
+		}
+		err = json.Unmarshal(buffer.Bytes(), &list)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse 'go list' output: %w", err)
+		}
+
+		paths = append(paths, filepath.Join(config.Output, filepath.Base(list.ImportPath)))
 	}
 
 	if len(paths) == 0 {
