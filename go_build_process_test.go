@@ -27,8 +27,10 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 		workspacePath string
 		goPath        string
 		goCache       string
-		executable    *fakes.Executable
-		logs          *bytes.Buffer
+		executions    []pexec.Execution
+
+		executable *fakes.Executable
+		logs       *bytes.Buffer
 
 		buildProcess gobuild.GoBuildProcess
 	)
@@ -47,26 +49,19 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 		goCache, err = ioutil.TempDir("", "gocache")
 		Expect(err).NotTo(HaveOccurred())
 
+		logs = bytes.NewBuffer(nil)
+
 		executable = &fakes.Executable{}
 		executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
-			path := execution.Args[2]
+			executions = append(executions, execution)
 
-			if err := ioutil.WriteFile(filepath.Join(path, "c_command"), nil, 0755); err != nil {
-				return err
+			if execution.Args[0] == "list" {
+				fmt.Fprintf(execution.Stdout, `{
+					"ImportPath": "%s"
+				}`, filepath.Join("some-dir", execution.Args[len(execution.Args)-1]))
 			}
-
-			if err := ioutil.WriteFile(filepath.Join(path, "b_command"), nil, 0755); err != nil {
-				return err
-			}
-
-			if err := ioutil.WriteFile(filepath.Join(path, "a_command"), nil, 0755); err != nil {
-				return err
-			}
-
 			return nil
 		}
-
-		logs = bytes.NewBuffer(nil)
 
 		now := time.Now()
 		times := []time.Time{now, now.Add(1 * time.Second)}
@@ -101,19 +96,31 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(binaries).To(Equal([]string{
-			filepath.Join(layerPath, "bin", "a_command"),
-			filepath.Join(layerPath, "bin", "b_command"),
-			filepath.Join(layerPath, "bin", "c_command"),
+			filepath.Join(layerPath, "bin", "some-target"),
+			filepath.Join(layerPath, "bin", "other-target"),
 		}))
 
 		Expect(filepath.Join(layerPath, "bin")).To(BeADirectory())
 
-		Expect(executable.ExecuteCall.Receives.Execution.Args).To(Equal([]string{
+		Expect(executions[0].Args).To(Equal([]string{
 			"build",
 			"-o", filepath.Join(layerPath, "bin"),
 			"-buildmode", "pie",
 			"./some-target", "./other-target",
 		}))
+
+		Expect(executions[1].Args).To(Equal([]string{
+			"list",
+			"--json",
+			"./some-target",
+		}))
+
+		Expect(executions[2].Args).To(Equal([]string{
+			"list",
+			"--json",
+			"./other-target",
+		}))
+
 		Expect(executable.ExecuteCall.Receives.Execution.Dir).To(Equal(workspacePath))
 		Expect(executable.ExecuteCall.Receives.Execution.Env).To(ContainElement(fmt.Sprintf("GOPATH=%s", goPath)))
 		Expect(executable.ExecuteCall.Receives.Execution.Env).To(ContainElement(fmt.Sprintf("GOCACHE=%s", goCache)))
@@ -139,14 +146,12 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(binaries).To(Equal([]string{
-				filepath.Join(layerPath, "bin", "a_command"),
-				filepath.Join(layerPath, "bin", "b_command"),
-				filepath.Join(layerPath, "bin", "c_command"),
+				filepath.Join(layerPath, "bin", "some-dir"),
 			}))
 
 			Expect(filepath.Join(layerPath, "bin")).To(BeADirectory())
 
-			Expect(executable.ExecuteCall.Receives.Execution.Args).To(Equal([]string{
+			Expect(executions[0].Args).To(Equal([]string{
 				"build",
 				"-o", filepath.Join(layerPath, "bin"),
 				"-buildmode", "default",
@@ -154,6 +159,13 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 				"-mod", "mod",
 				".",
 			}))
+
+			Expect(executions[1].Args).To(Equal([]string{
+				"list",
+				"--json",
+				".",
+			}))
+
 			Expect(executable.ExecuteCall.Receives.Execution.Dir).To(Equal(workspacePath))
 			Expect(executable.ExecuteCall.Receives.Execution.Env).To(ContainElement(fmt.Sprintf("GOCACHE=%s", goCache)))
 
@@ -175,13 +187,12 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 				Output:    filepath.Join(layerPath, "bin"),
 				GoPath:    "",
 				GoCache:   goCache,
-				Targets:   []string{"./some-target", "./other-target"},
+				Targets:   []string{"./other-target", "./some-target"},
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(binaries).To(Equal([]string{
-				filepath.Join(layerPath, "bin", "a_command"),
-				filepath.Join(layerPath, "bin", "b_command"),
-				filepath.Join(layerPath, "bin", "c_command"),
+				filepath.Join(layerPath, "bin", "other-target"),
+				filepath.Join(layerPath, "bin", "some-target"),
 			}))
 
 			Expect(filepath.Join(layerPath, "bin")).To(BeADirectory())
@@ -209,7 +220,7 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 			})
 		})
 
-		context("when the executable fails", func() {
+		context("when the executable fails go build", func() {
 			it.Before(func() {
 				executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
 					fmt.Fprintln(execution.Stdout, "build error stdout")
@@ -235,9 +246,17 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 			})
 		})
 
-		context("when 'go build' doesn't create any executables", func() {
+		context("when the executable fails go list", func() {
 			it.Before(func() {
-				executable.ExecuteCall.Stub = nil
+				executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
+					if execution.Args[0] == "list" {
+						fmt.Fprintln(execution.Stdout, "build error stdout")
+						fmt.Fprintln(execution.Stderr, "build error stderr")
+						return errors.New("command failed")
+					}
+
+					return nil
+				}
 			})
 
 			it("returns an error", func() {
@@ -248,7 +267,33 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 					GoCache:   goCache,
 					Targets:   []string{"./some-target", "./other-target"},
 				})
-				Expect(err).To(MatchError("failed to determine go executable start command"))
+				Expect(err).To(MatchError("failed to execute 'go list': command failed"))
+
+				Expect(logs.String()).To(ContainSubstring("        build error stdout"))
+				Expect(logs.String()).To(ContainSubstring("        build error stderr"))
+			})
+		})
+
+		context("when the json parse of go list fails", func() {
+			it.Before(func() {
+				executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
+					if execution.Args[0] == "list" {
+						fmt.Fprintln(execution.Stdout, "%%%")
+					}
+
+					return nil
+				}
+			})
+
+			it("returns an error", func() {
+				_, err := buildProcess.Execute(gobuild.GoBuildConfiguration{
+					Workspace: workspacePath,
+					Output:    filepath.Join(layerPath, "bin"),
+					GoPath:    goPath,
+					GoCache:   goCache,
+					Targets:   []string{"./some-target", "./other-target"},
+				})
+				Expect(err).To(MatchError(ContainSubstring("failed to parse 'go list' output:")))
 			})
 		})
 	})
