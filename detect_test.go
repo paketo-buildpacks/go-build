@@ -2,7 +2,6 @@ package gobuild_test
 
 import (
 	"errors"
-	"path/filepath"
 	"testing"
 
 	gobuild "github.com/paketo-buildpacks/go-build"
@@ -51,72 +50,6 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 
 		Expect(parser.ParseCall.Receives.BuildpackVersion).To(Equal("some-buildpack-version"))
 		Expect(parser.ParseCall.Receives.WorkingDir).To(Equal(workingDir))
-	})
-
-	context("when flags are set in the build configuration", func() {
-		it.Before(func() {
-			parser.ParseCall.Returns.BuildConfiguration.Flags = []string{"-some-flag=flag"}
-		})
-
-		it("adds flags to the build plan", func() {
-			result, err := detect(packit.DetectContext{
-				WorkingDir: workingDir,
-			})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(result.Plan).To(Equal(packit.BuildPlan{
-				Requires: []packit.BuildPlanRequirement{{
-					Name: "go",
-					Metadata: map[string]interface{}{
-						"build": true,
-					},
-				}},
-			}))
-		})
-	})
-
-	context("when import path are set in the build configuration", func() {
-		it.Before(func() {
-			parser.ParseCall.Returns.BuildConfiguration.ImportPath = "./some/path"
-		})
-
-		it("adds import-path to the build plan", func() {
-			result, err := detect(packit.DetectContext{
-				WorkingDir: workingDir,
-			})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(result.Plan).To(Equal(packit.BuildPlan{
-				Requires: []packit.BuildPlanRequirement{{
-					Name: "go",
-					Metadata: map[string]interface{}{
-						"build": true,
-					},
-				}},
-			}))
-		})
-	})
-
-	context("when there are multiple targets", func() {
-		it.Before(func() {
-			parser.ParseCall.Returns.BuildConfiguration.Targets = []string{
-				filepath.Join(workingDir, "first"),
-				filepath.Join(workingDir, "second"),
-			}
-		})
-
-		it("detects only if all targets have go source files", func() {
-			result, err := detect(packit.DetectContext{
-				WorkingDir: workingDir,
-			})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(result.Plan).To(Equal(packit.BuildPlan{
-				Requires: []packit.BuildPlanRequirement{{
-					Name: "go",
-					Metadata: map[string]interface{}{
-						"build": true,
-					},
-				}},
-			}))
-		})
 	})
 
 	context("when there are no *.go files in the working directory", func() {
