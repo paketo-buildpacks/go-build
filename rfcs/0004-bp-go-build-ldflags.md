@@ -28,6 +28,45 @@ If the same flag set were to be written using the proposed
 
 `BP_GO_BUILD_LDFLAGS="-extldflags '-f no-PIC -static'" BP_GO_BUILD_FLAGS="-tags=osusergo,netgo,embedfs"`
 
+### Examples of Flag Merging
+
+1.
+```
+Given BP_GO_BUILD_LDFLAGS="-extldflags '-f no-PIC -static'"
+Given BP_GO_BUILD_FLAGS is unset
+
+The resulting flags would be:
+-ldflags="-extldflags '-f no-PIC -static'" -buildmode pie . # the buildmode and target are defaults added by the buildpack
+```
+Summary: If no other flags are set by the user the `BP_GO_BUILD_LDFLAGS` will
+be treated as a flag set on its own and be included as part of the build
+command.
+
+1.
+```
+Given BP_GO_BUILD_LDFLAGS="-extldflags '-f no-PIC -static'"
+Given BP_GO_BUILD_FLAGS="-tags=osusergo,netgo,embedfs"
+
+The resulting flags would be:
+-ldflags="-extldflags '-f no-PIC -static'" -tags=osusergo,netgo,embedfs -buildmode pie .
+```
+Summary: If `BP_GO_BUILD_LDFLAGS` and `BP_GO_BUILD_FLAGS` is set and
+`BP_GO_BUILD_FLAGS` does not include `-ldflags` then the `BP_GO_BUILD_LDFLAGS`
+will set `-ldflags` in the existing flag set.
+
+1.
+```
+Given BP_GO_BUILD_LDFLAGS="-extldflags '-f no-PIC -static'"
+Given BP_GO_BUILD_FLAGS="-ldflags='some-ldflags' -tags=osusergo,netgo,embedfs"
+
+The resulting flags would be:
+-ldflags="-extldflags '-f no-PIC -static'" -tags=osusergo,netgo,embedfs -buildmode pie .
+```
+Summary: If `BP_GO_BUILD_LDFLAGS` and `BP_GO_BUILD_FLAGS` is set and
+`BP_GO_BUILD_FLAGS` does include `-ldflags` then the `BP_GO_BUILD_LDFLAGS` will
+overwrite `-ldflags` in the existing flag set.
+
+
 ## Unresolved Questions and Bikeshedding (Optional)
 
 * Is this necessary? Should we just document the escaping better? Should we do
