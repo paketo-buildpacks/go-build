@@ -42,7 +42,7 @@ Summary: If no other flags are set by the user the `BP_GO_BUILD_LDFLAGS` will
 be treated as a flag set on its own and be included as part of the build
 command.
 
-1.
+2.
 ```
 Given BP_GO_BUILD_LDFLAGS="-extldflags '-f no-PIC -static'"
 Given BP_GO_BUILD_FLAGS="-tags=osusergo,netgo,embedfs"
@@ -54,7 +54,7 @@ Summary: If `BP_GO_BUILD_LDFLAGS` and `BP_GO_BUILD_FLAGS` is set and
 `BP_GO_BUILD_FLAGS` does not include `-ldflags` then the `BP_GO_BUILD_LDFLAGS`
 will set `-ldflags` in the existing flag set.
 
-1.
+3.
 ```
 Given BP_GO_BUILD_LDFLAGS="-extldflags '-f no-PIC -static'"
 Given BP_GO_BUILD_FLAGS="-ldflags='some-ldflags' -tags=osusergo,netgo,embedfs"
