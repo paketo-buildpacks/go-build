@@ -54,7 +54,10 @@ func testBuildFlags(t *testing.T, context spec.G, it spec.S) {
 			var logs fmt.Stringer
 			image, logs, err = pack.Build.
 				WithPullPolicy("never").
-				WithEnv(map[string]string{"BP_GO_BUILD_FLAGS": `-buildmode=default -tags=paketo -ldflags="-X main.variable=some-value"`}).
+				WithEnv(map[string]string{
+					"BP_GO_BUILD_FLAGS":   `-buildmode=default -tags=paketo`,
+					"BP_GO_BUILD_LDFLAGS": `-X main.variable=some-value`,
+				}).
 				WithBuildpacks(
 					settings.Buildpacks.GoDist.Online,
 					settings.Buildpacks.GoBuild.Online,
@@ -101,8 +104,9 @@ func testBuildFlags(t *testing.T, context spec.G, it spec.S) {
 			image, logs, err = pack.Build.
 				WithPullPolicy("never").
 				WithEnv(map[string]string{
-					"BP_GO_BUILD_FLAGS": `-buildmode=default -tags=paketo -ldflags="-X main.variable=${SOME_VALUE}"`,
-					"SOME_VALUE":        "env-value",
+					"BP_GO_BUILD_FLAGS":   `-buildmode=default -tags=paketo`,
+					"BP_GO_BUILD_LDFLAGS": `-X main.variable=${SOME_VALUE}`,
+					"SOME_VALUE":          "env-value",
 				}).
 				WithBuildpacks(
 					settings.Buildpacks.GoDist.Online,
