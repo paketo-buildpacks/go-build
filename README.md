@@ -24,6 +24,14 @@ supply another value as the first argument to `package.sh`.
 
 ## Go Build Configuration
 
+### `BP_GO_BUILD_LDFLAGS`
+The `BP_GO_BUILD_LDFLAGS` variable allows you to set a value for the `-ldflags` build flag
+when compiling your program.
+
+```shell
+BP_GO_BUILD_LDFLAGS= -X main.variable=some-value
+```
+
 Specifying the `Go Build` configuration through `buildpack.yml` configuration
 will be deprecated in Go Build Buildpack v1.0.0.
 
