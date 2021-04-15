@@ -70,50 +70,9 @@ func (p BuildConfigurationParser) Parse(buildpackVersion, workingDir string) (Bu
 		}
 	}
 
-	ldFlags, ldFlagsSet := os.LookupEnv("BP_GO_BUILD_LDFLAGS")
-	buildFlags, buildFlagsSet := os.LookupEnv("BP_GO_BUILD_FLAGS")
-
-	if buildFlagsSet {
-		shellwordsParser := shellwords.NewParser()
-		shellwordsParser.ParseEnv = true
-		buildConfiguration.Flags, err = shellwordsParser.Parse(buildFlags)
-		if err != nil {
-			return BuildConfiguration{}, err
-		}
-	}
-
-	contains := func(flags []string, match string) bool {
-		for _, flag := range flags {
-			if strings.HasPrefix(flag, match) {
-				return true
-			}
-		}
-
-		return false
-	}
-
-	if ldFlagsSet {
-		shellwordsParser := shellwords.NewParser()
-		shellwordsParser.ParseEnv = true
-		parsedLdFlags, err := shellwordsParser.Parse(fmt.Sprintf(`-ldflags="%s"`, ldFlags))
-		if err != nil {
-			return BuildConfiguration{}, err
-		}
-		if len(parsedLdFlags) != 1 {
-			return BuildConfiguration{}, fmt.Errorf("BP_GO_BUILD_LDFLAGS value (%s) could not be parsed: value contains multiple words", ldFlags)
-		}
-
-		for i, flag := range buildConfiguration.Flags {
-			if strings.HasPrefix(flag, "-ldflags") {
-				// BP_GO_BUILD_LDFLAGS takes precedent over -ldflags in BP_GO_BUILD_FLAGS
-
-				buildConfiguration.Flags[i] = parsedLdFlags[0]
-			}
-		}
-
-		if !contains(buildConfiguration.Flags, "-ldflags") {
-			buildConfiguration.Flags = append(buildConfiguration.Flags, parsedLdFlags[0])
-		}
+	buildConfiguration.Flags, err = parseFlagsFromEnvVars(buildConfiguration.Flags)
+	if err != nil {
+		return BuildConfiguration{}, err
 	}
 
 	if val, ok := os.LookupEnv("BP_GO_BUILD_IMPORT_PATH"); ok {
@@ -121,4 +80,49 @@ func (p BuildConfigurationParser) Parse(buildpackVersion, workingDir string) (Bu
 	}
 
 	return buildConfiguration, nil
+}
+
+func containsFlag(flags []string, match string) bool {
+	for _, flag := range flags {
+		if strings.HasPrefix(flag, match) {
+			return true
+		}
+	}
+	return false
+}
+
+func parseFlagsFromEnvVars(flags []string) ([]string, error) {
+	shellwordsParser := shellwords.NewParser()
+	shellwordsParser.ParseEnv = true
+
+	if buildFlags, ok := os.LookupEnv("BP_GO_BUILD_FLAGS"); ok {
+		var err error
+		flags, err = shellwordsParser.Parse(buildFlags)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if ldFlags, ok := os.LookupEnv("BP_GO_BUILD_LDFLAGS"); ok {
+		parsed, err := shellwordsParser.Parse(fmt.Sprintf(`-ldflags="%s"`, ldFlags))
+		if err != nil {
+			return nil, err
+		}
+		if len(parsed) != 1 {
+			return nil, fmt.Errorf("BP_GO_BUILD_LDFLAGS value (%s) could not be parsed: value contains multiple words", ldFlags)
+		}
+
+		for i, flag := range flags {
+			if strings.HasPrefix(flag, "-ldflags") {
+				// Replace value from BP_GO_BUILD_FLAGS or buildpack.yml with value from
+				// BP_GO_BUILD_LDFLAGS because BP_GO_BUILD_LDFLAGS takes precedence
+				flags[i] = parsed[0]
+			}
+		}
+
+		if !containsFlag(flags, "-ldflags") {
+			flags = append(flags, parsed[0])
+		}
+	}
+	return flags, nil
 }

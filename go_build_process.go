@@ -52,17 +52,7 @@ func (p GoBuildProcess) Execute(config GoBuildConfiguration) ([]string, error) {
 		return nil, fmt.Errorf("failed to create targets output directory: %w", err)
 	}
 
-	contains := func(flags []string, match string) bool {
-		for _, flag := range flags {
-			if strings.HasPrefix(flag, match) {
-				return true
-			}
-		}
-
-		return false
-	}
-
-	if !contains(config.Flags, "-buildmode") {
+	if !containsFlag(config.Flags, "-buildmode") {
 		config.Flags = append(config.Flags, "-buildmode", "pie")
 	}
 
