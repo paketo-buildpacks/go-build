@@ -10,7 +10,7 @@ import (
 func TestUnitGoBuild(t *testing.T) {
 	suite := spec.New("go-build", spec.Report(report.Terminal{}))
 	suite("Build", testBuild)
-	suite("BuildConfigurationParser", testBuildConfigurationParser)
+	suite("BuildConfigurationParser", testBuildConfigurationParser, spec.Sequential())
 	suite("Detect", testDetect)
 	suite("GoBuildProcess", testGoBuildProcess)
 	suite("GoBuildpackYMLParser", testGoBuildpackYMLParser)

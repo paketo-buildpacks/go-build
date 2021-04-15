@@ -70,7 +70,7 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 			Expect(targetManager.CleanAndValidateCall.Receives.Targets).To(Equal([]string{"some/target1", "./some/target2"}))
 			Expect(targetManager.CleanAndValidateCall.Receives.WorkingDir).To(Equal(workingDir))
 		})
-	}, spec.Sequential())
+	})
 
 	context("when BP_GO_BUILD_FLAGS is set", func() {
 		it.Before(func() {
@@ -101,7 +101,7 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 
 			Expect(targetManager.GenerateDefaultsCall.Receives.WorkingDir).To(Equal(workingDir))
 		})
-	}, spec.Sequential())
+	})
 
 	context("when BP_GO_BUILD_LDFLAGS is set", func() {
 		it.Before(func() {
@@ -183,7 +183,7 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 				Expect(targetManager.GenerateDefaultsCall.Receives.WorkingDir).To(Equal(workingDir))
 			})
 		})
-	}, spec.Sequential())
+	})
 
 	context("when BP_GO_BUILD_IMPORT_PATH is set", func() {
 		it.Before(func() {
@@ -204,9 +204,9 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 
 			Expect(targetManager.GenerateDefaultsCall.Receives.WorkingDir).To(Equal(workingDir))
 		})
-	}, spec.Sequential())
+	})
 
-	context("when there is a buildpack.yml and environement variables are not set", func() {
+	context("when there is a buildpack.yml and environment variables are not set", func() {
 		it.Before(func() {
 			err := ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), nil, 0644)
 			Expect(err).NotTo(HaveOccurred())
@@ -232,7 +232,7 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 		})
 	})
 
-	context("when there is a buildpack.yml and environement variables are set", func() {
+	context("when there is a buildpack.yml and environment variables are set", func() {
 		it.Before(func() {
 			err := ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), nil, 0644)
 			Expect(err).NotTo(HaveOccurred())
@@ -265,7 +265,41 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 			Expect(targetManager.CleanAndValidateCall.Receives.Targets).To(Equal([]string{"some/target1", "./some/target2"}))
 			Expect(targetManager.CleanAndValidateCall.Receives.WorkingDir).To(Equal(workingDir))
 		})
-	}, spec.Sequential())
+	})
+
+	context("buildpack.yml specifies flags including -ldflags and BP_GO_BUILD_LDFLAGS is set", func() {
+		it.Before(func() {
+			err := ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), nil, 0644)
+			Expect(err).NotTo(HaveOccurred())
+
+			buildpackYMLParser.ParseCall.Returns.BuildConfiguration = gobuild.BuildConfiguration{
+				Targets: []string{"."},
+				Flags: []string{
+					`-ldflags="-buildpack -yml -flags"`,
+					`-otherflag`,
+				},
+			}
+
+			os.Setenv("BP_GO_BUILD_LDFLAGS", `-env -value`)
+		})
+
+		it.After(func() {
+			os.Unsetenv("BP_GO_BUILD_LDFLAGS")
+		})
+
+		it("uses build flags from the buildpack.yml EXCEPT -ldflags", func() {
+			configuration, err := parser.Parse("1.2.3", workingDir)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(configuration).To(Equal(gobuild.BuildConfiguration{
+				Flags: []string{
+					`-ldflags=-env -value`,
+					`-otherflag`,
+				},
+			}))
+
+			Expect(buildpackYMLParser.ParseCall.Receives.WorkingDir).To(Equal(workingDir))
+		})
+	})
 
 	context("failure cases", func() {
 		context("when the buildpack.yml cannot be stat'd", func() {
@@ -313,7 +347,7 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 				_, err := parser.Parse("1.2.3", workingDir)
 				Expect(err).To(MatchError("failed to clean and validate targets"))
 			})
-		}, spec.Sequential())
+		})
 
 		context("when no targets can be found", func() {
 			it.Before(func() {
@@ -339,7 +373,7 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 				_, err := parser.Parse("1.2.3", workingDir)
 				Expect(err).To(MatchError(ContainSubstring("invalid command line string")))
 			})
-		}, spec.Sequential())
+		})
 		context("when the ldflags fail to parse", func() {
 			it.Before(func() {
 				os.Setenv("BP_GO_BUILD_LDFLAGS", "\"")
@@ -353,7 +387,7 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 				_, err := parser.Parse("1.2.3", workingDir)
 				Expect(err).To(MatchError(ContainSubstring("invalid command line string")))
 			})
-		}, spec.Sequential())
+		})
 
 		context("when the ldflags cannot be parsed as a single -ldflags value", func() {
 			it.Before(func() {
@@ -368,6 +402,6 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 				_, err := parser.Parse("1.2.3", workingDir)
 				Expect(err).To(MatchError(ContainSubstring(`BP_GO_BUILD_LDFLAGS value ("spaces in quotes") could not be parsed: value contains multiple words`)))
 			})
-		}, spec.Sequential())
+		})
 	})
 }
