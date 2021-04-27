@@ -73,7 +73,7 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 				Execute(image.ID)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(container).Should(Serve(ContainSubstring("first: go1.15")).OnPort(8080))
+			Eventually(container).Should(Serve(ContainSubstring("first: go1.16")).OnPort(8080))
 
 			Expect(logs).To(ContainLines(
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
@@ -109,7 +109,7 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 				Execute(image.ID)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(container).Should(Serve(ContainSubstring("second: go1.15")).OnPort(8080))
+			Eventually(container).Should(Serve(ContainSubstring("second: go1.16")).OnPort(8080))
 
 		})
 	})
