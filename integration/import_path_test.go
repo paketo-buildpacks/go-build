@@ -76,7 +76,7 @@ func testImportPath(t *testing.T, context spec.G, it spec.S) {
 			Eventually(container).Should(
 				Serve(
 					SatisfyAll(
-						ContainSubstring("go1.15"),
+						ContainSubstring("go1.16"),
 						ContainSubstring("/workspace contents: []"),
 					),
 				).OnPort(8080),

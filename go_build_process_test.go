@@ -17,6 +17,7 @@ import (
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
+	. "github.com/paketo-buildpacks/occam/matchers"
 )
 
 func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
@@ -124,6 +125,7 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 		Expect(executable.ExecuteCall.Receives.Execution.Dir).To(Equal(workspacePath))
 		Expect(executable.ExecuteCall.Receives.Execution.Env).To(ContainElement(fmt.Sprintf("GOPATH=%s", goPath)))
 		Expect(executable.ExecuteCall.Receives.Execution.Env).To(ContainElement(fmt.Sprintf("GOCACHE=%s", goCache)))
+		Expect(executable.ExecuteCall.Receives.Execution.Env).To(ContainElement("GO111MODULE=auto"))
 
 		Expect(logs.String()).To(ContainSubstring("  Executing build process"))
 		Expect(logs.String()).To(ContainSubstring(fmt.Sprintf("    Running 'go build -o %s -buildmode pie ./some-target ./other-target'", filepath.Join(layerPath, "bin"))))
@@ -169,9 +171,11 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 			Expect(executable.ExecuteCall.Receives.Execution.Dir).To(Equal(workspacePath))
 			Expect(executable.ExecuteCall.Receives.Execution.Env).To(ContainElement(fmt.Sprintf("GOCACHE=%s", goCache)))
 
-			Expect(logs.String()).To(ContainSubstring("  Executing build process"))
-			Expect(logs.String()).To(ContainSubstring(fmt.Sprintf(`    Running 'go build -o %s -buildmode default -ldflags "-X main.variable=some-value" -mod mod .'`, filepath.Join(layerPath, "bin"))))
-			Expect(logs.String()).To(ContainSubstring("      Completed in 1s"))
+			Expect(logs).To(ContainLines(
+				"  Executing build process",
+				fmt.Sprintf(`    Running 'go build -o %s -buildmode default -ldflags "-X main.variable=some-value" -mod mod .'`, filepath.Join(layerPath, "bin")),
+				"      Completed in 1s",
+			))
 		})
 	})
 
@@ -240,9 +244,11 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 				})
 				Expect(err).To(MatchError("failed to execute 'go build': command failed"))
 
-				Expect(logs.String()).To(ContainSubstring("      Failed after 1s"))
-				Expect(logs.String()).To(ContainSubstring("        build error stdout"))
-				Expect(logs.String()).To(ContainSubstring("        build error stderr"))
+				Expect(logs).To(ContainLines(
+					"      Failed after 1s",
+					"        build error stdout",
+					"        build error stderr",
+				))
 			})
 		})
 
@@ -269,8 +275,10 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 				})
 				Expect(err).To(MatchError("failed to execute 'go list': command failed"))
 
-				Expect(logs.String()).To(ContainSubstring("        build error stdout"))
-				Expect(logs.String()).To(ContainSubstring("        build error stderr"))
+				Expect(logs).To(ContainLines(
+					"        build error stdout",
+					"        build error stderr",
+				))
 			})
 		})
 

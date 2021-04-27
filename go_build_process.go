@@ -63,6 +63,7 @@ func (p GoBuildProcess) Execute(config GoBuildConfiguration) ([]string, error) {
 	if config.GoPath != "" {
 		env = append(env, fmt.Sprintf("GOPATH=%s", config.GoPath))
 	}
+	env = append(env, "GO111MODULE=auto")
 
 	printedArgs := []string{"go"}
 	for _, arg := range args {
