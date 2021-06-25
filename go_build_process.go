@@ -14,6 +14,7 @@ import (
 
 	"github.com/paketo-buildpacks/packit/chronos"
 	"github.com/paketo-buildpacks/packit/pexec"
+	"github.com/paketo-buildpacks/packit/scribe"
 )
 
 //go:generate faux --interface Executable --output fakes/executable.go
@@ -32,11 +33,11 @@ type GoBuildConfiguration struct {
 
 type GoBuildProcess struct {
 	executable Executable
-	logs       LogEmitter
+	logs       scribe.Emitter
 	clock      chronos.Clock
 }
 
-func NewGoBuildProcess(executable Executable, logs LogEmitter, clock chronos.Clock) GoBuildProcess {
+func NewGoBuildProcess(executable Executable, logs scribe.Emitter, clock chronos.Clock) GoBuildProcess {
 	return GoBuildProcess{
 		executable: executable,
 		logs:       logs,

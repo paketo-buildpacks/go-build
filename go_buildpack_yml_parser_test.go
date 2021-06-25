@@ -2,12 +2,12 @@ package gobuild_test
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
 	gobuild "github.com/paketo-buildpacks/go-build"
+	"github.com/paketo-buildpacks/packit/scribe"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
@@ -25,10 +25,10 @@ func testGoBuildpackYMLParser(t *testing.T, context spec.G, it spec.S) {
 
 	it.Before(func() {
 		var err error
-		workingDir, err = ioutil.TempDir("", "working-dir")
+		workingDir, err = os.MkdirTemp("", "working-dir")
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), []byte(`---
+		Expect(os.WriteFile(filepath.Join(workingDir, "buildpack.yml"), []byte(`---
 go:
   targets:
   - first
@@ -42,7 +42,7 @@ go:
 `), 0644)).To(Succeed())
 
 		logs = bytes.NewBuffer(nil)
-		goBuildpackYMLParser = gobuild.NewGoBuildpackYMLParser(gobuild.NewLogEmitter(logs))
+		goBuildpackYMLParser = gobuild.NewGoBuildpackYMLParser(scribe.NewEmitter(logs))
 	})
 
 	it.After(func() {
@@ -70,7 +70,7 @@ go:
 
 		context("when the flags have an env var in them", func() {
 			it.Before(func() {
-				Expect(ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), []byte(`---
+				Expect(os.WriteFile(filepath.Join(workingDir, "buildpack.yml"), []byte(`---
 go:
   build:
     flags:
@@ -104,7 +104,7 @@ go:
 
 		context("when the buildpack.yml does not contain go configuration", func() {
 			it.Before(func() {
-				Expect(ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), []byte(`---
+				Expect(os.WriteFile(filepath.Join(workingDir, "buildpack.yml"), []byte(`---
 not-go:
   build:
     flags:
@@ -136,7 +136,7 @@ not-go:
 
 			context("buildpack.yml fails to parse", func() {
 				it.Before(func() {
-					Expect(ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), []byte(`%%%`), 0644)).To(Succeed())
+					Expect(os.WriteFile(filepath.Join(workingDir, "buildpack.yml"), []byte(`%%%`), 0644)).To(Succeed())
 				})
 
 				it("returns an error", func() {
@@ -148,7 +148,7 @@ not-go:
 
 			context("when a the env var interpolation fails", func() {
 				it.Before(func() {
-					Expect(ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), []byte(`---
+					Expect(os.WriteFile(filepath.Join(workingDir, "buildpack.yml"), []byte(`---
 go:
   build:
     flags:

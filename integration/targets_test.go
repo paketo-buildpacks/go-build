@@ -81,7 +81,7 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 				fmt.Sprintf("    Running 'go build -o /layers/%s/targets/bin -buildmode pie ./first ./second'", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 				MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
 				"",
-				"  Assigning launch processes",
+				"  Assigning launch processes:",
 				fmt.Sprintf("    web: /layers/%s/targets/bin/first", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 				fmt.Sprintf("    first: /layers/%s/targets/bin/first", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 				fmt.Sprintf("    second: /layers/%s/targets/bin/second", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),

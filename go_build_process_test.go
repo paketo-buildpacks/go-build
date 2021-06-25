@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -14,6 +13,7 @@ import (
 	"github.com/paketo-buildpacks/go-build/fakes"
 	"github.com/paketo-buildpacks/packit/chronos"
 	"github.com/paketo-buildpacks/packit/pexec"
+	"github.com/paketo-buildpacks/packit/scribe"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
@@ -38,16 +38,16 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 
 	it.Before(func() {
 		var err error
-		layerPath, err = ioutil.TempDir("", "layer")
+		layerPath, err = os.MkdirTemp("", "layer")
 		Expect(err).NotTo(HaveOccurred())
 
-		workspacePath, err = ioutil.TempDir("", "workspace")
+		workspacePath, err = os.MkdirTemp("", "workspace")
 		Expect(err).NotTo(HaveOccurred())
 
-		goPath, err = ioutil.TempDir("", "go-path")
+		goPath, err = os.MkdirTemp("", "go-path")
 		Expect(err).NotTo(HaveOccurred())
 
-		goCache, err = ioutil.TempDir("", "gocache")
+		goCache, err = os.MkdirTemp("", "gocache")
 		Expect(err).NotTo(HaveOccurred())
 
 		logs = bytes.NewBuffer(nil)
@@ -77,7 +77,7 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 			return t
 		})
 
-		buildProcess = gobuild.NewGoBuildProcess(executable, gobuild.NewLogEmitter(logs), clock)
+		buildProcess = gobuild.NewGoBuildProcess(executable, scribe.NewEmitter(logs), clock)
 	})
 
 	it.After(func() {
@@ -134,7 +134,7 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 
 	context("when there are build flags", func() {
 		it.Before(func() {
-			Expect(ioutil.WriteFile(filepath.Join(workspacePath, "go.mod"), nil, 0644)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(workspacePath, "go.mod"), nil, 0644)).To(Succeed())
 			Expect(os.Mkdir(filepath.Join(workspacePath, "vendor"), os.ModePerm)).To(Succeed())
 		})
 
@@ -181,7 +181,7 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 
 	context("when the GOPATH is empty", func() {
 		it.Before(func() {
-			Expect(ioutil.WriteFile(filepath.Join(workspacePath, "go.mod"), nil, 0644)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(workspacePath, "go.mod"), nil, 0644)).To(Succeed())
 			Expect(os.Mkdir(filepath.Join(workspacePath, "vendor"), os.ModePerm)).To(Succeed())
 		})
 

@@ -2,7 +2,6 @@ package integration_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -46,7 +45,7 @@ func testBuildpackYML(t *testing.T, context spec.G, it spec.S) {
 			source, err = occam.Source(filepath.Join("testdata", "targets"))
 			Expect(err).NotTo(HaveOccurred())
 
-			err = ioutil.WriteFile(filepath.Join(source, "buildpack.yml"), []byte(`---
+			err = os.WriteFile(filepath.Join(source, "buildpack.yml"), []byte(`---
 go:
   targets:
   - first
@@ -91,7 +90,7 @@ go:
 				fmt.Sprintf("    Running 'go build -o /layers/%s/targets/bin -buildmode pie ./first ./second'", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 				MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
 				"",
-				"  Assigning launch processes",
+				"  Assigning launch processes:",
 				fmt.Sprintf("    web: /layers/%s/targets/bin/first", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 			))
 		})
@@ -128,7 +127,7 @@ go:
 					fmt.Sprintf("    Running 'go build -o /layers/%s/targets/bin -buildmode pie ./third'", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 					MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
 					"",
-					"  Assigning launch processes",
+					"  Assigning launch processes:",
 					fmt.Sprintf("    web: /layers/%s/targets/bin/third", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 				))
 			})

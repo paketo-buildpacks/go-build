@@ -1,7 +1,6 @@
 package gobuild_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -23,14 +22,14 @@ func testSourceDeleter(t *testing.T, context spec.G, it spec.S) {
 
 	it.Before(func() {
 		var err error
-		path, err = ioutil.TempDir("", "source")
+		path, err = os.MkdirTemp("", "source")
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(ioutil.WriteFile(filepath.Join(path, "some-file"), nil, os.ModePerm)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(path, "some-file"), nil, os.ModePerm)).To(Succeed())
 		Expect(os.MkdirAll(filepath.Join(path, "some-dir", "some-other-dir", "another-dir"), os.ModePerm)).To(Succeed())
-		Expect(ioutil.WriteFile(filepath.Join(path, "some-dir", "some-file"), nil, os.ModePerm)).To(Succeed())
-		Expect(ioutil.WriteFile(filepath.Join(path, "some-dir", "some-other-dir", "some-file"), nil, os.ModePerm)).To(Succeed())
-		Expect(ioutil.WriteFile(filepath.Join(path, "some-dir", "some-other-dir", "another-dir", "some-file"), nil, os.ModePerm)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(path, "some-dir", "some-file"), nil, os.ModePerm)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(path, "some-dir", "some-other-dir", "some-file"), nil, os.ModePerm)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(path, "some-dir", "some-other-dir", "another-dir", "some-file"), nil, os.ModePerm)).To(Succeed())
 
 		deleter = gobuild.NewSourceDeleter()
 	})

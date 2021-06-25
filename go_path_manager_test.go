@@ -1,7 +1,6 @@
 package gobuild_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -22,7 +21,7 @@ func testGoPathManager(t *testing.T, context spec.G, it spec.S) {
 
 	it.Before(func() {
 		var err error
-		tempDir, err = ioutil.TempDir("", "tmp")
+		tempDir, err = os.MkdirTemp("", "tmp")
 		Expect(err).NotTo(HaveOccurred())
 
 		pathManager = gobuild.NewGoPathManager(tempDir)
@@ -37,10 +36,10 @@ func testGoPathManager(t *testing.T, context spec.G, it spec.S) {
 
 		it.Before(func() {
 			var err error
-			workspacePath, err = ioutil.TempDir("", "workspace")
+			workspacePath, err = os.MkdirTemp("", "workspace")
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(ioutil.WriteFile(filepath.Join(workspacePath, "some-file"), nil, 0644)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(workspacePath, "some-file"), nil, 0644)).To(Succeed())
 		})
 
 		it.After(func() {
@@ -62,7 +61,7 @@ func testGoPathManager(t *testing.T, context spec.G, it spec.S) {
 
 		context("when the workspace contains a go.mod file", func() {
 			it.Before(func() {
-				Expect(ioutil.WriteFile(filepath.Join(workspacePath, "go.mod"), nil, 0644)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(workspacePath, "go.mod"), nil, 0644)).To(Succeed())
 			})
 
 			it("does not setup a GOPATH", func() {
@@ -110,7 +109,7 @@ func testGoPathManager(t *testing.T, context spec.G, it spec.S) {
 
 		it.Before(func() {
 			var err error
-			path, err = ioutil.TempDir("", "gopath")
+			path, err = os.MkdirTemp("", "gopath")
 			Expect(err).NotTo(HaveOccurred())
 		})
 

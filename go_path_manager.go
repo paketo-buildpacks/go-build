@@ -2,7 +2,6 @@ package gobuild
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -25,7 +24,7 @@ func (m GoPathManager) Setup(workspace, importPath string) (string, string, erro
 		return "", workspace, nil
 	}
 
-	path, err := ioutil.TempDir(m.tempDir, "gopath")
+	path, err := os.MkdirTemp(m.tempDir, "gopath")
 	if err != nil {
 		return "", "", fmt.Errorf("failed to setup GOPATH: %w", err)
 	}

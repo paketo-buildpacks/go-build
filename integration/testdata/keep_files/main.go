@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -17,7 +16,7 @@ func main() {
 		paths, _ := filepath.Glob("/workspace/*")
 		fmt.Fprintf(w, "/workspace contents: %v\n", paths)
 
-		contents, _ := ioutil.ReadFile("./assets/some-file")
+		contents, _ := os.ReadFile("./assets/some-file")
 		fmt.Fprintf(w, "file contents: %s\n", string(contents))
 	})
 

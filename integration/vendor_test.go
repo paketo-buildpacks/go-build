@@ -80,7 +80,7 @@ func testVendor(t *testing.T, context spec.G, it spec.S) {
 				fmt.Sprintf("    Running 'go build -o /layers/%s/targets/bin -buildmode pie .'", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 				MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
 				"",
-				"  Assigning launch processes",
+				"  Assigning launch processes:",
 				fmt.Sprintf("    web: /layers/%s/targets/bin/workspace", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 			))
 		})
