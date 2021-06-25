@@ -2,7 +2,6 @@ package gobuild_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -24,7 +23,7 @@ func testGoTargetManager(t *testing.T, context spec.G, it spec.S) {
 
 	it.Before(func() {
 		var err error
-		workingDir, err = ioutil.TempDir("", "working-dir")
+		workingDir, err = os.MkdirTemp("", "working-dir")
 		Expect(err).NotTo(HaveOccurred())
 
 		targetManager = gobuild.NewGoTargetManager()
@@ -40,11 +39,11 @@ func testGoTargetManager(t *testing.T, context spec.G, it spec.S) {
 			it.Before(func() {
 				targetDir := filepath.Join(workingDir, "first")
 				Expect(os.MkdirAll(targetDir, os.ModePerm)).To(Succeed())
-				Expect(ioutil.WriteFile(filepath.Join(targetDir, "main.go"), nil, 0644)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(targetDir, "main.go"), nil, 0644)).To(Succeed())
 
 				targetDir = filepath.Join(workingDir, "second")
 				Expect(os.MkdirAll(targetDir, os.ModePerm)).To(Succeed())
-				Expect(ioutil.WriteFile(filepath.Join(targetDir, "main.go"), nil, 0644)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(targetDir, "main.go"), nil, 0644)).To(Succeed())
 			})
 
 			it("returns a slice of targets that have been cleaned", func() {
@@ -66,7 +65,7 @@ func testGoTargetManager(t *testing.T, context spec.G, it spec.S) {
 			it.Before(func() {
 				targetDir := filepath.Join(workingDir, "first")
 				Expect(os.MkdirAll(targetDir, os.ModePerm)).To(Succeed())
-				Expect(ioutil.WriteFile(filepath.Join(targetDir, "main.go"), nil, 0644)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(targetDir, "main.go"), nil, 0644)).To(Succeed())
 
 			})
 
@@ -90,7 +89,7 @@ func testGoTargetManager(t *testing.T, context spec.G, it spec.S) {
 	context("GenerateDefaults", func() {
 		context("when there is a *.go file in the workingDir", func() {
 			it.Before(func() {
-				Expect(ioutil.WriteFile(filepath.Join(workingDir, "main.go"), nil, 0644)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(workingDir, "main.go"), nil, 0644)).To(Succeed())
 			})
 
 			it("returns . as the target", func() {
@@ -105,11 +104,11 @@ func testGoTargetManager(t *testing.T, context spec.G, it spec.S) {
 			it.Before(func() {
 				targetDir := filepath.Join(workingDir, "cmd", "first")
 				Expect(os.MkdirAll(targetDir, os.ModePerm)).To(Succeed())
-				Expect(ioutil.WriteFile(filepath.Join(targetDir, "main.go"), nil, 0644)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(targetDir, "main.go"), nil, 0644)).To(Succeed())
 
 				targetDir = filepath.Join(workingDir, "cmd", "something", "second")
 				Expect(os.MkdirAll(targetDir, os.ModePerm)).To(Succeed())
-				Expect(ioutil.WriteFile(filepath.Join(targetDir, "main.go"), nil, 0644)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(targetDir, "main.go"), nil, 0644)).To(Succeed())
 			})
 
 			it("returns a target list of all top level directories in ./cmd that contain *.go files", func() {

@@ -2,7 +2,6 @@ package gobuild_test
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -28,7 +27,7 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 
 	it.Before(func() {
 		var err error
-		workingDir, err = ioutil.TempDir("", "working-dir")
+		workingDir, err = os.MkdirTemp("", "working-dir")
 		Expect(err).NotTo(HaveOccurred())
 
 		targetManager = &fakes.TargetManager{}
@@ -208,7 +207,7 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 
 	context("when there is a buildpack.yml and environment variables are not set", func() {
 		it.Before(func() {
-			err := ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), nil, 0644)
+			err := os.WriteFile(filepath.Join(workingDir, "buildpack.yml"), nil, 0644)
 			Expect(err).NotTo(HaveOccurred())
 
 			targetManager.CleanAndValidateCall.Returns.StringSlice = []string{"./first", "./second"}
@@ -234,7 +233,7 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 
 	context("when there is a buildpack.yml and environment variables are set", func() {
 		it.Before(func() {
-			err := ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), nil, 0644)
+			err := os.WriteFile(filepath.Join(workingDir, "buildpack.yml"), nil, 0644)
 			Expect(err).NotTo(HaveOccurred())
 
 			os.Setenv("BP_GO_BUILD_IMPORT_PATH", "./some/import/path")
@@ -269,7 +268,7 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 
 	context("buildpack.yml specifies flags including -ldflags and BP_GO_BUILD_LDFLAGS is set", func() {
 		it.Before(func() {
-			err := ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), nil, 0644)
+			err := os.WriteFile(filepath.Join(workingDir, "buildpack.yml"), nil, 0644)
 			Expect(err).NotTo(HaveOccurred())
 
 			buildpackYMLParser.ParseCall.Returns.BuildConfiguration = gobuild.BuildConfiguration{
@@ -319,7 +318,7 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 
 		context("buildpack.yml parsing fails", func() {
 			it.Before(func() {
-				err := ioutil.WriteFile(filepath.Join(workingDir, "buildpack.yml"), nil, 0644)
+				err := os.WriteFile(filepath.Join(workingDir, "buildpack.yml"), nil, 0644)
 				Expect(err).NotTo(HaveOccurred())
 
 				buildpackYMLParser.ParseCall.Returns.Error = errors.New("failed to parse buildpack.yml")

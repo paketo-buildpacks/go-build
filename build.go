@@ -6,6 +6,7 @@ import (
 
 	"github.com/paketo-buildpacks/packit"
 	"github.com/paketo-buildpacks/packit/chronos"
+	"github.com/paketo-buildpacks/packit/scribe"
 )
 
 //go:generate faux --interface BuildProcess --output fakes/build_process.go
@@ -29,7 +30,7 @@ func Build(
 	buildProcess BuildProcess,
 	pathManager PathManager,
 	clock chronos.Clock,
-	logs LogEmitter,
+	logs scribe.Emitter,
 	sourceRemover SourceRemover,
 ) packit.BuildFunc {
 
@@ -104,8 +105,7 @@ func Build(
 			})
 		}
 
-		logs.Process("Assigning launch processes")
-		logs.ListProcesses(processes)
+		logs.LaunchProcesses(processes)
 
 		return packit.BuildResult{
 			Layers: []packit.Layer{targetsLayer, goCacheLayer},

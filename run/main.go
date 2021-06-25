@@ -7,11 +7,12 @@ import (
 	"github.com/paketo-buildpacks/packit"
 	"github.com/paketo-buildpacks/packit/chronos"
 	"github.com/paketo-buildpacks/packit/pexec"
+	"github.com/paketo-buildpacks/packit/scribe"
 )
 
 func main() {
-	logEmitter := gobuild.NewLogEmitter(os.Stdout)
-	configParser := gobuild.NewBuildConfigurationParser(gobuild.NewGoTargetManager(), gobuild.NewGoBuildpackYMLParser(logEmitter))
+	emitter := scribe.NewEmitter(os.Stdout)
+	configParser := gobuild.NewBuildConfigurationParser(gobuild.NewGoTargetManager(), gobuild.NewGoBuildpackYMLParser(emitter))
 
 	packit.Run(
 		gobuild.Detect(
@@ -21,12 +22,12 @@ func main() {
 			configParser,
 			gobuild.NewGoBuildProcess(
 				pexec.NewExecutable("go"),
-				logEmitter,
+				emitter,
 				chronos.DefaultClock,
 			),
 			gobuild.NewGoPathManager(os.TempDir()),
 			chronos.DefaultClock,
-			logEmitter,
+			emitter,
 			gobuild.NewSourceDeleter(),
 		),
 	)
