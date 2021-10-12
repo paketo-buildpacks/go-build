@@ -107,6 +107,7 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 			"build",
 			"-o", filepath.Join(layerPath, "bin"),
 			"-buildmode", "pie",
+			"-trimpath",
 			"./some-target", "./other-target",
 		}))
 
@@ -128,7 +129,7 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 		Expect(executable.ExecuteCall.Receives.Execution.Env).To(ContainElement("GO111MODULE=auto"))
 
 		Expect(logs.String()).To(ContainSubstring("  Executing build process"))
-		Expect(logs.String()).To(ContainSubstring(fmt.Sprintf("    Running 'go build -o %s -buildmode pie ./some-target ./other-target'", filepath.Join(layerPath, "bin"))))
+		Expect(logs.String()).To(ContainSubstring(fmt.Sprintf("    Running 'go build -o %s -buildmode pie -trimpath ./some-target ./other-target'", filepath.Join(layerPath, "bin"))))
 		Expect(logs.String()).To(ContainSubstring("      Completed in 1s"))
 	})
 
@@ -144,7 +145,7 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 				Output:    filepath.Join(layerPath, "bin"),
 				GoCache:   goCache,
 				Targets:   []string{"."},
-				Flags:     []string{"-buildmode", "default", "-ldflags", "-X main.variable=some-value", "-mod", "mod"},
+				Flags:     []string{"-buildmode", "default", "-ldflags", "-X main.variable=some-value", "-mod", "mod", "-trimpath"},
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(binaries).To(Equal([]string{
@@ -159,6 +160,7 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 				"-buildmode", "default",
 				"-ldflags", "-X main.variable=some-value",
 				"-mod", "mod",
+				"-trimpath",
 				".",
 			}))
 
@@ -173,7 +175,7 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 
 			Expect(logs).To(ContainLines(
 				"  Executing build process",
-				fmt.Sprintf(`    Running 'go build -o %s -buildmode default -ldflags "-X main.variable=some-value" -mod mod .'`, filepath.Join(layerPath, "bin")),
+				fmt.Sprintf(`    Running 'go build -o %s -buildmode default -ldflags "-X main.variable=some-value" -mod mod -trimpath .'`, filepath.Join(layerPath, "bin")),
 				"      Completed in 1s",
 			))
 		})

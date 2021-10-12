@@ -57,6 +57,10 @@ func (p GoBuildProcess) Execute(config GoBuildConfiguration) ([]string, error) {
 		config.Flags = append(config.Flags, "-buildmode", "pie")
 	}
 
+	if !containsFlag(config.Flags, "-trimpath") {
+		config.Flags = append(config.Flags, "-trimpath")
+	}
+
 	args := append([]string{"build", "-o", config.Output}, config.Flags...)
 	args = append(args, config.Targets...)
 

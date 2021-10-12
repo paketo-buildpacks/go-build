@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/onsi/gomega/format"
 	"github.com/paketo-buildpacks/occam"
 	"github.com/sclevine/spec"
 	"github.com/sclevine/spec/report"
@@ -36,6 +37,7 @@ var settings struct {
 }
 
 func TestIntegration(t *testing.T) {
+	format.MaxLength = 0
 	Expect := NewWithT(t).Expect
 
 	file, err := os.Open("../integration.json")
@@ -86,6 +88,7 @@ func TestIntegration(t *testing.T) {
 	suite("ImportPath", testImportPath)
 	suite("KeepFiles", testKeepFiles)
 	suite("Mod", testMod)
+	suite("Rebuild", testRebuild)
 	suite("Targets", testTargets)
 	suite("Vendor", testVendor)
 	suite.Run(t)

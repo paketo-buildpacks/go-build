@@ -11,5 +11,6 @@ require (
 	github.com/paketo-buildpacks/occam v0.1.4
 	github.com/paketo-buildpacks/packit v1.2.0
 	github.com/sclevine/spec v1.4.0
+	golang.org/x/sys v0.0.0-20210603125802-9665404d3644
 	gopkg.in/yaml.v2 v2.4.0
 )

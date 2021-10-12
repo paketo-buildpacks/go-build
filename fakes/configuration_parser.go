@@ -8,7 +8,7 @@ import (
 
 type ConfigurationParser struct {
 	ParseCall struct {
-		sync.Mutex
+		mutex     sync.Mutex
 		CallCount int
 		Receives  struct {
 			BuildpackVersion string
@@ -23,8 +23,8 @@ type ConfigurationParser struct {
 }
 
 func (f *ConfigurationParser) Parse(param1 string, param2 string) (gobuild.BuildConfiguration, error) {
-	f.ParseCall.Lock()
-	defer f.ParseCall.Unlock()
+	f.ParseCall.mutex.Lock()
+	defer f.ParseCall.mutex.Unlock()
 	f.ParseCall.CallCount++
 	f.ParseCall.Receives.BuildpackVersion = param1
 	f.ParseCall.Receives.WorkingDir = param2
