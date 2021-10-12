@@ -14,6 +14,11 @@ type BuildProcess interface {
 	Execute(config GoBuildConfiguration) (binaries []string, err error)
 }
 
+//go:generate faux --interface ChecksumCalculator --output fakes/checksum_calculator.go
+type ChecksumCalculator interface {
+	Sum(paths ...string) (string, error)
+}
+
 //go:generate faux --interface PathManager --output fakes/path_manager.go
 type PathManager interface {
 	Setup(workspace, importPath string) (goPath, path string, err error)
@@ -28,12 +33,12 @@ type SourceRemover interface {
 func Build(
 	parser ConfigurationParser,
 	buildProcess BuildProcess,
+	checksumCalculator ChecksumCalculator,
 	pathManager PathManager,
 	clock chronos.Clock,
 	logs scribe.Emitter,
 	sourceRemover SourceRemover,
 ) packit.BuildFunc {
-
 	return func(context packit.BuildContext) (packit.BuildResult, error) {
 		logs.Title("%s %s", context.BuildpackInfo.Name, context.BuildpackInfo.Version)
 
@@ -75,13 +80,22 @@ func Build(
 			return packit.BuildResult{}, err
 		}
 
-		err = pathManager.Teardown(goPath)
+		sum, err := checksumCalculator.Sum(targetsLayer.Path)
 		if err != nil {
 			return packit.BuildResult{}, err
 		}
 
-		targetsLayer.Metadata = map[string]interface{}{
-			"built_at": clock.Now().Format(time.RFC3339Nano),
+		cachedSha, _ := targetsLayer.Metadata["cache_sha"].(string)
+		if cachedSha != sum {
+			targetsLayer.Metadata = map[string]interface{}{
+				"cache_sha": sum,
+				"built_at":  clock.Now().Format(time.RFC3339Nano),
+			}
+		}
+
+		err = pathManager.Teardown(goPath)
+		if err != nil {
+			return packit.BuildResult{}, err
 		}
 
 		err = sourceRemover.Clear(context.WorkingDir)

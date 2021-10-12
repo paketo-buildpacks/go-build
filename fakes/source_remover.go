@@ -4,7 +4,7 @@ import "sync"
 
 type SourceRemover struct {
 	ClearCall struct {
-		sync.Mutex
+		mutex     sync.Mutex
 		CallCount int
 		Receives  struct {
 			Path string
@@ -17,8 +17,8 @@ type SourceRemover struct {
 }
 
 func (f *SourceRemover) Clear(param1 string) error {
-	f.ClearCall.Lock()
-	defer f.ClearCall.Unlock()
+	f.ClearCall.mutex.Lock()
+	defer f.ClearCall.mutex.Unlock()
 	f.ClearCall.CallCount++
 	f.ClearCall.Receives.Path = param1
 	if f.ClearCall.Stub != nil {

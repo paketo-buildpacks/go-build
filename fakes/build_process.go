@@ -8,7 +8,7 @@ import (
 
 type BuildProcess struct {
 	ExecuteCall struct {
-		sync.Mutex
+		mutex     sync.Mutex
 		CallCount int
 		Receives  struct {
 			Config gobuild.GoBuildConfiguration
@@ -22,8 +22,8 @@ type BuildProcess struct {
 }
 
 func (f *BuildProcess) Execute(param1 gobuild.GoBuildConfiguration) ([]string, error) {
-	f.ExecuteCall.Lock()
-	defer f.ExecuteCall.Unlock()
+	f.ExecuteCall.mutex.Lock()
+	defer f.ExecuteCall.mutex.Unlock()
 	f.ExecuteCall.CallCount++
 	f.ExecuteCall.Receives.Config = param1
 	if f.ExecuteCall.Stub != nil {

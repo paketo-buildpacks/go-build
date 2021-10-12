@@ -3,6 +3,8 @@ package gobuild_test
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -28,10 +30,11 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		timestamp  time.Time
 		logs       *bytes.Buffer
 
-		buildProcess  *fakes.BuildProcess
-		pathManager   *fakes.PathManager
-		sourceRemover *fakes.SourceRemover
-		parser        *fakes.ConfigurationParser
+		buildProcess       *fakes.BuildProcess
+		pathManager        *fakes.PathManager
+		sourceRemover      *fakes.SourceRemover
+		parser             *fakes.ConfigurationParser
+		checksumCalculator *fakes.ChecksumCalculator
 
 		build packit.BuildFunc
 	)
@@ -59,6 +62,9 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			return timestamp
 		})
 
+		checksumCalculator = &fakes.ChecksumCalculator{}
+		checksumCalculator.SumCall.Returns.String = "some-checksum"
+
 		logs = bytes.NewBuffer(nil)
 
 		sourceRemover = &fakes.SourceRemover{}
@@ -73,6 +79,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		build = gobuild.Build(
 			parser,
 			buildProcess,
+			checksumCalculator,
 			pathManager,
 			clock,
 			scribe.NewEmitter(logs),
@@ -112,7 +119,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Launch:           true,
 					Cache:            false,
 					Metadata: map[string]interface{}{
-						"built_at": timestamp.Format(time.RFC3339Nano),
+						"cache_sha": "some-checksum",
+						"built_at":  timestamp.Format(time.RFC3339Nano),
 					},
 				},
 				{
@@ -201,7 +209,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						Launch:           true,
 						Cache:            false,
 						Metadata: map[string]interface{}{
-							"built_at": timestamp.Format(time.RFC3339Nano),
+							"cache_sha": "some-checksum",
+							"built_at":  timestamp.Format(time.RFC3339Nano),
 						},
 					},
 					{
@@ -232,6 +241,82 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 							Type:    "another-start-command",
 							Command: "path/another-start-command",
 							Direct:  true,
+						},
+					},
+				},
+			}))
+		})
+	})
+
+	context("when the targets were previously built", func() {
+		it.Before(func() {
+			err := ioutil.WriteFile(filepath.Join(layersDir, "targets.toml"), []byte(fmt.Sprintf(`
+launch = true
+[metadata]
+	cache_sha = "some-checksum"
+	built_at = "%s"
+`, timestamp.Add(-10*time.Second).Format(time.RFC3339Nano))), 0600)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		it("returns a result that builds correctly", func() {
+			result, err := build(packit.BuildContext{
+				WorkingDir: workingDir,
+				CNBPath:    cnbDir,
+				Stack:      "some-stack",
+				BuildpackInfo: packit.BuildpackInfo{
+					Name:    "Some Buildpack",
+					Version: "some-version",
+				},
+				Layers: packit.Layers{Path: layersDir},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(result).To(Equal(packit.BuildResult{
+				Layers: []packit.Layer{
+					{
+						Name:             "targets",
+						Path:             filepath.Join(layersDir, "targets"),
+						SharedEnv:        packit.Environment{},
+						BuildEnv:         packit.Environment{},
+						LaunchEnv:        packit.Environment{},
+						ProcessLaunchEnv: map[string]packit.Environment{},
+						Build:            false,
+						Launch:           true,
+						Cache:            false,
+						Metadata: map[string]interface{}{
+							"cache_sha": "some-checksum",
+							"built_at":  timestamp.Add(-10 * time.Second).Format(time.RFC3339Nano),
+						},
+					},
+					{
+						Name:             "gocache",
+						Path:             filepath.Join(layersDir, "gocache"),
+						SharedEnv:        packit.Environment{},
+						BuildEnv:         packit.Environment{},
+						LaunchEnv:        packit.Environment{},
+						ProcessLaunchEnv: map[string]packit.Environment{},
+						Build:            false,
+						Launch:           false,
+						Cache:            true,
+					},
+				},
+				Launch: packit.LaunchMetadata{
+					Processes: []packit.Process{
+						{
+							Type:    "web",
+							Command: "path/some-start-command",
+							Direct:  false,
+						},
+						{
+							Type:    "some-start-command",
+							Command: "path/some-start-command",
+							Direct:  false,
+						},
+						{
+							Type:    "another-start-command",
+							Command: "path/another-start-command",
+							Direct:  false,
 						},
 					},
 				},
@@ -319,6 +404,26 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Layers: packit.Layers{Path: layersDir},
 				})
 				Expect(err).To(MatchError("failed to execute build process"))
+			})
+		})
+
+		context("when the checksum cannot be calculatred", func() {
+			it.Before(func() {
+				checksumCalculator.SumCall.Returns.Error = errors.New("failed to calculate checksum")
+			})
+
+			it("returns an error", func() {
+				_, err := build(packit.BuildContext{
+					WorkingDir: workingDir,
+					CNBPath:    cnbDir,
+					Stack:      "some-stack",
+					BuildpackInfo: packit.BuildpackInfo{
+						Name:    "Some Buildpack",
+						Version: "some-version",
+					},
+					Layers: packit.Layers{Path: layersDir},
+				})
+				Expect(err).To(MatchError("failed to calculate checksum"))
 			})
 		})
 
