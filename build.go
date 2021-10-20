@@ -1,6 +1,7 @@
 package gobuild
 
 import (
+	"fmt"
 	"path/filepath"
 	"time"
 
@@ -111,12 +112,39 @@ func Build(
 			},
 		}
 
+		shouldReload, err := checkLiveReloadEnabled()
+		if err != nil {
+			return packit.BuildResult{}, err
+		}
+
+		if shouldReload && context.Stack == TinyStackName {
+			return packit.BuildResult{}, fmt.Errorf("cannot enable live reload on stack '%s': stack does not support watchexec", context.Stack)
+		}
+
+		if shouldReload {
+			processes = []packit.Process{
+				{
+					Type:    "web",
+					Command: fmt.Sprintf("watchexec --restart --watch %s --watch %s '%s'", context.WorkingDir, filepath.Dir(binaries[0]), binaries[0]),
+					Direct:  context.Stack == TinyStackName,
+				},
+			}
+		}
+
 		for _, binary := range binaries {
 			processes = append(processes, packit.Process{
 				Type:    filepath.Base(binary),
 				Command: binary,
 				Direct:  context.Stack == TinyStackName,
 			})
+
+			if shouldReload {
+				processes = append(processes, packit.Process{
+					Type:    fmt.Sprintf("reload-%s", filepath.Base(binary)),
+					Command: fmt.Sprintf("watchexec --restart --watch %s --watch %s '%s'", context.WorkingDir, filepath.Dir(binary), binary),
+					Direct:  context.Stack == TinyStackName,
+				})
+			}
 		}
 
 		logs.LaunchProcesses(processes)

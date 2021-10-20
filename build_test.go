@@ -182,6 +182,59 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		Expect(logs.String()).To(ContainSubstring("another-start-command: path/another-start-command"))
 	})
 
+	context("BP_LIVE_RELOAD_ENABLED=true in the build environment", func() {
+		it.Before(func() {
+			os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")
+		})
+
+		it.After(func() {
+			os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
+		})
+
+		it("wraps the target process(es) in watchexec", func() {
+			result, err := build(packit.BuildContext{
+				WorkingDir: workingDir,
+				CNBPath:    cnbDir,
+				Stack:      "some-stack",
+				BuildpackInfo: packit.BuildpackInfo{
+					Name:    "Some Buildpack",
+					Version: "some-version",
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(result.Launch).To(Equal(packit.LaunchMetadata{
+				Processes: []packit.Process{
+					{
+						Type:    "web",
+						Command: fmt.Sprintf("watchexec --restart --watch %s --watch path 'path/some-start-command'", workingDir),
+						Direct:  false,
+					},
+					{
+						Type:    "some-start-command",
+						Command: "path/some-start-command",
+						Direct:  false,
+					},
+					{
+						Type:    "reload-some-start-command",
+						Command: fmt.Sprintf("watchexec --restart --watch %s --watch path 'path/some-start-command'", workingDir),
+						Direct:  false,
+					},
+					{
+						Type:    "another-start-command",
+						Command: "path/another-start-command",
+						Direct:  false,
+					},
+					{
+						Type:    "reload-another-start-command",
+						Command: fmt.Sprintf("watchexec --restart --watch %s --watch path 'path/another-start-command'", workingDir),
+						Direct:  false,
+					},
+				},
+			}))
+		})
+	})
+
 	context("when the stack is tiny", func() {
 		it("marks the launch process as direct", func() {
 			result, err := build(packit.BuildContext{
@@ -245,6 +298,29 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					},
 				},
 			}))
+		})
+
+		context("and BP_LIVE_RELOAD_ENABLED=true in the build environment", func() {
+			it.Before(func() {
+				os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")
+			})
+
+			it.After(func() {
+				os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
+			})
+			it("fails the build and logs that watchexec is not supported on Tiny", func() {
+				_, err := build(packit.BuildContext{
+					WorkingDir: workingDir,
+					CNBPath:    cnbDir,
+					Stack:      "io.paketo.stacks.tiny",
+					BuildpackInfo: packit.BuildpackInfo{
+						Name:    "Some Buildpack",
+						Version: "some-version",
+					},
+					Layers: packit.Layers{Path: layersDir},
+				})
+				Expect(err).To(MatchError(ContainSubstring("cannot enable live reload on stack 'io.paketo.stacks.tiny': stack does not support watchexec")))
+			})
 		})
 	})
 
@@ -464,6 +540,28 @@ launch = true
 					Layers: packit.Layers{Path: layersDir},
 				})
 				Expect(err).To(MatchError("failed to remove source"))
+			})
+		})
+		context("when BP_LIVE_RELOAD_ENABLED value is invalid", func() {
+			it.Before(func() {
+				os.Setenv("BP_LIVE_RELOAD_ENABLED", "not-a-bool")
+			})
+
+			it.After(func() {
+				os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
+			})
+			it("returns an error", func() {
+				_, err := build(packit.BuildContext{
+					WorkingDir: workingDir,
+					CNBPath:    cnbDir,
+					Stack:      "some-stack",
+					BuildpackInfo: packit.BuildpackInfo{
+						Name:    "Some Buildpack",
+						Version: "some-version",
+					},
+					Layers: packit.Layers{Path: layersDir},
+				})
+				Expect(err).To(MatchError(ContainSubstring("failed to parse BP_LIVE_RELOAD_ENABLED value not-a-bool")))
 			})
 		})
 	})
