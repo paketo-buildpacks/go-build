@@ -2,6 +2,7 @@ package gobuild_test
 
 import (
 	"errors"
+	"os"
 	"testing"
 
 	gobuild "github.com/paketo-buildpacks/go-build"
@@ -65,6 +66,32 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		})
 	})
 
+	context("BP_LIVE_RELOAD_ENABLED=true in build environment", func() {
+		it.Before(func() {
+			os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")
+		})
+
+		it.After(func() {
+			os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
+		})
+
+		it("requires watchexec at launch time", func() {
+			result, err := detect(packit.DetectContext{
+				WorkingDir: workingDir,
+				BuildpackInfo: packit.BuildpackInfo{
+					Version: "some-buildpack-version",
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Plan.Requires).To(ContainElement(packit.BuildPlanRequirement{
+				Name: "watchexec",
+				Metadata: map[string]interface{}{
+					"launch": true,
+				},
+			}))
+		})
+	})
+
 	context("failure cases", func() {
 		context("when the configuration parser fails", func() {
 			it.Before(func() {
@@ -76,6 +103,46 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 					WorkingDir: workingDir,
 				})
 				Expect(err).To(MatchError(ContainSubstring("failed to parse configuration")))
+			})
+		})
+		context("parsing value of $BP_LIVE_RELOAD_ENABLED fails", func() {
+			it.Before(func() {
+				os.Setenv("BP_LIVE_RELOAD_ENABLED", "not-a-bool")
+			})
+
+			it.After(func() {
+				os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
+			})
+
+			it("returns an error", func() {
+				_, err := detect(packit.DetectContext{
+					WorkingDir: workingDir,
+					BuildpackInfo: packit.BuildpackInfo{
+						Version: "some-buildpack-version",
+					},
+				})
+				Expect(err).To(MatchError(ContainSubstring("failed to parse BP_LIVE_RELOAD_ENABLED value not-a-bool")))
+			})
+		})
+		context("BP_LIVE_RELOAD_ENABLED=true and the stack is tiny", func() {
+			it.Before(func() {
+				os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")
+
+			})
+
+			it.After(func() {
+				os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
+			})
+
+			it("returns an error", func() {
+				_, err := detect(packit.DetectContext{
+					WorkingDir: workingDir,
+					BuildpackInfo: packit.BuildpackInfo{
+						Version: "some-buildpack-version",
+					},
+					Stack: "io.paketo.stacks.tiny",
+				})
+				Expect(err).To(MatchError(ContainSubstring("cannot enable live reload on stack 'io.paketo.stacks.tiny': stack does not support watchexec")))
 			})
 		})
 	})

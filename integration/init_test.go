@@ -26,13 +26,18 @@ var settings struct {
 			Online  string
 			Offline string
 		}
+		Watchexec struct {
+			Online  string
+			Offline string
+		}
 	}
 	Buildpack struct {
 		ID   string
 		Name string
 	}
 	Config struct {
-		GoDist string `json:"go-dist"`
+		GoDist    string `json:"go-dist"`
+		Watchexec string `json:"watchexec"`
 	}
 }
 
@@ -76,6 +81,15 @@ func TestIntegration(t *testing.T) {
 	settings.Buildpacks.GoDist.Offline, err = buildpackStore.Get.
 		WithOfflineDependencies().
 		Execute(settings.Config.GoDist)
+	Expect(err).ToNot(HaveOccurred())
+
+	settings.Buildpacks.Watchexec.Online, err = buildpackStore.Get.
+		Execute(settings.Config.Watchexec)
+	Expect(err).ToNot(HaveOccurred())
+
+	settings.Buildpacks.Watchexec.Offline, err = buildpackStore.Get.
+		WithOfflineDependencies().
+		Execute(settings.Config.Watchexec)
 	Expect(err).ToNot(HaveOccurred())
 
 	SetDefaultEventuallyTimeout(10 * time.Second)
