@@ -127,7 +127,6 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		context("BP_LIVE_RELOAD_ENABLED=true and the stack is tiny", func() {
 			it.Before(func() {
 				os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")
-
 			})
 
 			it.After(func() {

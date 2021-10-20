@@ -43,6 +43,15 @@ func Build(
 	return func(context packit.BuildContext) (packit.BuildResult, error) {
 		logs.Title("%s %s", context.BuildpackInfo.Name, context.BuildpackInfo.Version)
 
+		shouldReload, err := checkLiveReloadEnabled()
+		if err != nil {
+			return packit.BuildResult{}, err
+		}
+
+		if shouldReload && context.Stack == TinyStackName {
+			return packit.BuildResult{}, fmt.Errorf("cannot enable live reload on stack '%s': stack does not support watchexec", context.Stack)
+		}
+
 		targetsLayer, err := context.Layers.Get(TargetsLayerName)
 		if err != nil {
 			return packit.BuildResult{}, err
@@ -110,15 +119,6 @@ func Build(
 				Command: binaries[0],
 				Direct:  context.Stack == TinyStackName,
 			},
-		}
-
-		shouldReload, err := checkLiveReloadEnabled()
-		if err != nil {
-			return packit.BuildResult{}, err
-		}
-
-		if shouldReload && context.Stack == TinyStackName {
-			return packit.BuildResult{}, fmt.Errorf("cannot enable live reload on stack '%s': stack does not support watchexec", context.Stack)
 		}
 
 		if shouldReload {
