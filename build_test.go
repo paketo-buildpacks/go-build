@@ -141,6 +141,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						Type:    "web",
 						Command: "path/some-start-command",
 						Direct:  false,
+						Default: true,
 					},
 					{
 						Type:    "some-start-command",
@@ -209,6 +210,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						Type:    "web",
 						Command: fmt.Sprintf("watchexec --restart --watch %s --watch path 'path/some-start-command'", workingDir),
 						Direct:  false,
+						Default: true,
 					},
 					{
 						Type:    "some-start-command",
@@ -284,6 +286,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 							Type:    "web",
 							Command: "path/some-start-command",
 							Direct:  true,
+							Default: true,
 						},
 						{
 							Type:    "some-start-command",
@@ -361,6 +364,7 @@ launch = true
 							Type:    "web",
 							Command: "path/some-start-command",
 							Direct:  false,
+							Default: true,
 						},
 						{
 							Type:    "some-start-command",

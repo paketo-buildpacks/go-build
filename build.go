@@ -118,6 +118,7 @@ func Build(
 				Type:    "web",
 				Command: binaries[0],
 				Direct:  context.Stack == TinyStackName,
+				Default: true,
 			},
 		}
 
@@ -127,6 +128,7 @@ func Build(
 					Type:    "web",
 					Command: fmt.Sprintf("watchexec --restart --watch %s --watch %s '%s'", context.WorkingDir, filepath.Dir(binaries[0]), binaries[0]),
 					Direct:  context.Stack == TinyStackName,
+					Default: true,
 				},
 			}
 		}
