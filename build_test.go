@@ -138,15 +138,10 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Launch: packit.LaunchMetadata{
 				Processes: []packit.Process{
 					{
-						Type:    "web",
-						Command: "path/some-start-command",
-						Direct:  false,
-						Default: true,
-					},
-					{
 						Type:    "some-start-command",
 						Command: "path/some-start-command",
 						Direct:  false,
+						Default: true,
 					},
 					{
 						Type:    "another-start-command",
@@ -178,7 +173,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 		Expect(logs.String()).To(ContainSubstring("Some Buildpack some-version"))
 		Expect(logs.String()).To(ContainSubstring("Assigning launch processes"))
-		Expect(logs.String()).To(ContainSubstring("web: path/some-start-command"))
 		Expect(logs.String()).To(ContainSubstring("some-start-command: path/some-start-command"))
 		Expect(logs.String()).To(ContainSubstring("another-start-command: path/another-start-command"))
 	})
@@ -207,12 +201,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Expect(result.Launch).To(Equal(packit.LaunchMetadata{
 				Processes: []packit.Process{
 					{
-						Type:    "web",
-						Command: fmt.Sprintf("watchexec --restart --watch %s --watch path 'path/some-start-command'", workingDir),
-						Direct:  false,
-						Default: true,
-					},
-					{
 						Type:    "some-start-command",
 						Command: "path/some-start-command",
 						Direct:  false,
@@ -221,6 +209,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						Type:    "reload-some-start-command",
 						Command: fmt.Sprintf("watchexec --restart --watch %s --watch path 'path/some-start-command'", workingDir),
 						Direct:  false,
+						Default: true,
 					},
 					{
 						Type:    "another-start-command",
@@ -283,15 +272,10 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 				Launch: packit.LaunchMetadata{
 					Processes: []packit.Process{
 						{
-							Type:    "web",
-							Command: "path/some-start-command",
-							Direct:  true,
-							Default: true,
-						},
-						{
 							Type:    "some-start-command",
 							Command: "path/some-start-command",
 							Direct:  true,
+							Default: true,
 						},
 						{
 							Type:    "another-start-command",
@@ -361,15 +345,10 @@ launch = true
 				Launch: packit.LaunchMetadata{
 					Processes: []packit.Process{
 						{
-							Type:    "web",
-							Command: "path/some-start-command",
-							Direct:  false,
-							Default: true,
-						},
-						{
 							Type:    "some-start-command",
 							Command: "path/some-start-command",
 							Direct:  false,
+							Default: true,
 						},
 						{
 							Type:    "another-start-command",

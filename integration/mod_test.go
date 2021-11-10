@@ -81,7 +81,7 @@ func testMod(t *testing.T, context spec.G, it spec.S) {
 				MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
 				"",
 				"  Assigning launch processes:",
-				fmt.Sprintf("    web: /layers/%s/targets/bin/mod", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+				fmt.Sprintf("    mod: /layers/%s/targets/bin/mod", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 			))
 		})
 	})

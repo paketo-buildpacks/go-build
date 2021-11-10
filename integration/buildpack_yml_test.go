@@ -91,7 +91,7 @@ go:
 				MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
 				"",
 				"  Assigning launch processes:",
-				fmt.Sprintf("    web: /layers/%s/targets/bin/first", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+				fmt.Sprintf("    first: /layers/%s/targets/bin/first", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 			))
 		})
 
@@ -128,7 +128,7 @@ go:
 					MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
 					"",
 					"  Assigning launch processes:",
-					fmt.Sprintf("    web: /layers/%s/targets/bin/third", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+					fmt.Sprintf("    third: /layers/%s/targets/bin/third", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 				))
 			})
 		})
