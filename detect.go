@@ -26,6 +26,12 @@ func Detect(parser ConfigurationParser) packit.DetectFunc {
 					"build": true,
 				},
 			},
+			{
+				Name: "syft",
+				Metadata: map[string]interface{}{
+					"build": true,
+				},
+			},
 		}
 
 		shouldEnableReload, err := checkLiveReloadEnabled()

@@ -2,11 +2,13 @@ package gobuild
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/paketo-buildpacks/packit"
 	"github.com/paketo-buildpacks/packit/chronos"
+	"github.com/paketo-buildpacks/packit/pexec"
 	"github.com/paketo-buildpacks/packit/scribe"
 )
 
@@ -101,6 +103,26 @@ func Build(
 				"cache_sha": sum,
 				"built_at":  clock.Now().Format(time.RFC3339Nano),
 			}
+		}
+
+		syft := pexec.NewExecutable("syft")
+		err = syft.Execute(pexec.Execution{
+			Args: []string{"packages", "--output", "json", "--file", filepath.Join(context.Layers.Path, "launch.sbom.syft.json"), fmt.Sprintf("dir:%s", path)},
+			// Dir:    path,
+			Stdout: os.Stdout,
+			Stderr: os.Stderr,
+		})
+		if err != nil {
+			panic("bwaaaah")
+		}
+		err = syft.Execute(pexec.Execution{
+			Args: []string{"packages", "--output", "json", "--file", filepath.Join(context.Layers.Path, fmt.Sprintf("%s.sbom.syft.json", TargetsLayerName)), fmt.Sprintf("dir:%s", path)},
+			// Dir:    path,
+			Stdout: os.Stdout,
+			Stderr: os.Stderr,
+		})
+		if err != nil {
+			panic("not again :(")
 		}
 
 		err = pathManager.Teardown(goPath)
