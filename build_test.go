@@ -173,8 +173,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 		Expect(logs.String()).To(ContainSubstring("Some Buildpack some-version"))
 		Expect(logs.String()).To(ContainSubstring("Assigning launch processes"))
-		Expect(logs.String()).To(ContainSubstring("some-start-command: path/some-start-command"))
-		Expect(logs.String()).To(ContainSubstring("another-start-command: path/another-start-command"))
+		Expect(logs.String()).To(ContainSubstring("some-start-command (default): path/some-start-command"))
+		Expect(logs.String()).To(ContainSubstring("another-start-command:        path/another-start-command"))
 	})
 
 	context("BP_LIVE_RELOAD_ENABLED=true in the build environment", func() {

@@ -89,7 +89,7 @@ func testImportPath(t *testing.T, context spec.G, it spec.S) {
 				MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
 				"",
 				"  Assigning launch processes:",
-				fmt.Sprintf("    import_path: /layers/%s/targets/bin/import_path", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+				fmt.Sprintf("    import_path (default): /layers/%s/targets/bin/import_path", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 			))
 		})
 	})
