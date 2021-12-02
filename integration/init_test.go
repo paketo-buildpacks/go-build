@@ -10,6 +10,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/onsi/gomega/format"
 	"github.com/paketo-buildpacks/occam"
+	"github.com/paketo-buildpacks/occam/packagers"
 	"github.com/sclevine/spec"
 	"github.com/sclevine/spec/report"
 
@@ -63,6 +64,8 @@ func TestIntegration(t *testing.T) {
 
 	buildpackStore := occam.NewBuildpackStore()
 
+	libpakBuildpackStore := occam.NewBuildpackStore().WithPackager(packagers.NewLibpak())
+
 	settings.Buildpacks.GoBuild.Online, err = buildpackStore.Get.
 		WithVersion("1.2.3").
 		Execute(root)
@@ -83,11 +86,11 @@ func TestIntegration(t *testing.T) {
 		Execute(settings.Config.GoDist)
 	Expect(err).ToNot(HaveOccurred())
 
-	settings.Buildpacks.Watchexec.Online, err = buildpackStore.Get.
+	settings.Buildpacks.Watchexec.Online, err = libpakBuildpackStore.Get.
 		Execute(settings.Config.Watchexec)
 	Expect(err).ToNot(HaveOccurred())
 
-	settings.Buildpacks.Watchexec.Offline, err = buildpackStore.Get.
+	settings.Buildpacks.Watchexec.Offline, err = libpakBuildpackStore.Get.
 		WithOfflineDependencies().
 		Execute(settings.Config.Watchexec)
 	Expect(err).ToNot(HaveOccurred())
