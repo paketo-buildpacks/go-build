@@ -113,31 +113,13 @@ func Build(
 			return packit.BuildResult{}, err
 		}
 
-		processes := []packit.Process{
-			{
-				Type:    "web",
-				Command: binaries[0],
-				Direct:  context.Stack == TinyStackName,
-				Default: true,
-			},
-		}
-
-		if shouldReload {
-			processes = []packit.Process{
-				{
-					Type:    "web",
-					Command: fmt.Sprintf("watchexec --restart --watch %s --watch %s '%s'", context.WorkingDir, filepath.Dir(binaries[0]), binaries[0]),
-					Direct:  context.Stack == TinyStackName,
-					Default: true,
-				},
-			}
-		}
-
-		for _, binary := range binaries {
+		var processes []packit.Process
+		for index, binary := range binaries {
 			processes = append(processes, packit.Process{
 				Type:    filepath.Base(binary),
 				Command: binary,
 				Direct:  context.Stack == TinyStackName,
+				Default: index == 0 && !shouldReload,
 			})
 
 			if shouldReload {
@@ -145,6 +127,7 @@ func Build(
 					Type:    fmt.Sprintf("reload-%s", filepath.Base(binary)),
 					Command: fmt.Sprintf("watchexec --restart --watch %s --watch %s '%s'", context.WorkingDir, filepath.Dir(binary), binary),
 					Direct:  context.Stack == TinyStackName,
+					Default: index == 0,
 				})
 			}
 		}

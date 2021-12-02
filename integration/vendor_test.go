@@ -81,7 +81,7 @@ func testVendor(t *testing.T, context spec.G, it spec.S) {
 				MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
 				"",
 				"  Assigning launch processes:",
-				fmt.Sprintf("    web (default): /layers/%s/targets/bin/workspace", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+				fmt.Sprintf("    workspace (default): /layers/%s/targets/bin/workspace", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 			))
 		})
 	})
