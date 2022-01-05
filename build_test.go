@@ -140,13 +140,13 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					{
 						Type:    "some-start-command",
 						Command: "path/some-start-command",
-						Direct:  false,
+						Direct:  true,
 						Default: true,
 					},
 					{
 						Type:    "another-start-command",
 						Command: "path/another-start-command",
-						Direct:  false,
+						Direct:  true,
 					},
 				},
 			},
@@ -203,23 +203,23 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					{
 						Type:    "some-start-command",
 						Command: "path/some-start-command",
-						Direct:  false,
+						Direct:  true,
 					},
 					{
 						Type:    "reload-some-start-command",
 						Command: fmt.Sprintf("watchexec --restart --watch %s --watch path 'path/some-start-command'", workingDir),
-						Direct:  false,
+						Direct:  true,
 						Default: true,
 					},
 					{
 						Type:    "another-start-command",
 						Command: "path/another-start-command",
-						Direct:  false,
+						Direct:  true,
 					},
 					{
 						Type:    "reload-another-start-command",
 						Command: fmt.Sprintf("watchexec --restart --watch %s --watch path 'path/another-start-command'", workingDir),
-						Direct:  false,
+						Direct:  true,
 					},
 				},
 			}))
@@ -347,13 +347,13 @@ launch = true
 						{
 							Type:    "some-start-command",
 							Command: "path/some-start-command",
-							Direct:  false,
+							Direct:  true,
 							Default: true,
 						},
 						{
 							Type:    "another-start-command",
 							Command: "path/another-start-command",
-							Direct:  false,
+							Direct:  true,
 						},
 					},
 				},
