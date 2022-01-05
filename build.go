@@ -118,7 +118,7 @@ func Build(
 			processes = append(processes, packit.Process{
 				Type:    filepath.Base(binary),
 				Command: binary,
-				Direct:  context.Stack == TinyStackName,
+				Direct:  true,
 				Default: index == 0 && !shouldReload,
 			})
 
@@ -126,7 +126,7 @@ func Build(
 				processes = append(processes, packit.Process{
 					Type:    fmt.Sprintf("reload-%s", filepath.Base(binary)),
 					Command: fmt.Sprintf("watchexec --restart --watch %s --watch %s '%s'", context.WorkingDir, filepath.Dir(binary), binary),
-					Direct:  context.Stack == TinyStackName,
+					Direct:  true,
 					Default: index == 0,
 				})
 			}
