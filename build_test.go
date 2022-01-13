@@ -207,7 +207,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					},
 					{
 						Type:    "reload-some-start-command",
-						Command: fmt.Sprintf("watchexec --restart --watch %s --watch path 'path/some-start-command'", workingDir),
+						Command: "/bin/bash",
+						Args:    []string{"-c", fmt.Sprintf("watchexec --restart --watch %s --watch path 'path/some-start-command'", workingDir)},
 						Direct:  true,
 						Default: true,
 					},
@@ -218,7 +219,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					},
 					{
 						Type:    "reload-another-start-command",
-						Command: fmt.Sprintf("watchexec --restart --watch %s --watch path 'path/another-start-command'", workingDir),
+						Command: "/bin/bash",
+						Args:    []string{"-c", fmt.Sprintf("watchexec --restart --watch %s --watch path 'path/another-start-command'", workingDir)},
 						Direct:  true,
 					},
 				},
