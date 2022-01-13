@@ -125,7 +125,8 @@ func Build(
 			if shouldReload {
 				processes = append(processes, packit.Process{
 					Type:    fmt.Sprintf("reload-%s", filepath.Base(binary)),
-					Command: fmt.Sprintf("watchexec --restart --watch %s --watch %s '%s'", context.WorkingDir, filepath.Dir(binary), binary),
+					Command: "/bin/bash",
+					Args:    []string{"-c", fmt.Sprintf("watchexec --restart --watch %s --watch %s '%s'", context.WorkingDir, filepath.Dir(binary), binary)},
 					Direct:  true,
 					Default: index == 0,
 				})
