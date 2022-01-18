@@ -3,6 +3,7 @@ package gobuild
 import (
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/paketo-buildpacks/packit"
@@ -125,8 +126,8 @@ func Build(
 			if shouldReload {
 				processes = append(processes, packit.Process{
 					Type:    fmt.Sprintf("reload-%s", filepath.Base(binary)),
-					Command: "/bin/bash",
-					Args:    []string{"-c", fmt.Sprintf("watchexec --restart --watch %s --watch %s '%s'", context.WorkingDir, filepath.Dir(binary), binary)},
+					Command: "watchexec",
+					Args:    []string{"--restart", "--watch", context.WorkingDir, "--watch", filepath.Dir(binary), strconv.Quote(binary)},
 					Direct:  true,
 					Default: index == 0,
 				})

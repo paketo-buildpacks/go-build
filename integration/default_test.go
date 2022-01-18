@@ -258,11 +258,8 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 				MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
 				"",
 				"  Assigning launch processes:",
-				fmt.Sprintf("    workspace:                  /layers/%s/targets/bin/workspace",
-					strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
-				fmt.Sprintf("    reload-workspace (default): watchexec --restart --watch /workspace --watch /layers/%s/targets/bin '/layers/%s/targets/bin/workspace'",
-					strings.ReplaceAll(settings.Buildpack.ID, "/", "_"),
-					strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+				fmt.Sprintf("    workspace:                  /layers/%s/targets/bin/workspace", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+				fmt.Sprintf("    reload-workspace (default): watchexec --restart --watch /workspace --watch /layers/%[1]s/targets/bin \"/layers/%[1]s/targets/bin/workspace\"", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 			))
 
 			noReloadContainer, err = docker.Container.Run.
