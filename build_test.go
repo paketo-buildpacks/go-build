@@ -310,7 +310,6 @@ launch = true
 			Expect(targets.Build).To(BeFalse())
 			Expect(targets.Cache).To(BeFalse())
 			Expect(targets.Launch).To(BeTrue())
-			// TODO: assertions about gocache layer
 		})
 	})
 
