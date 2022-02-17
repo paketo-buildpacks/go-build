@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	gobuild "github.com/paketo-buildpacks/go-build"
-	"github.com/paketo-buildpacks/packit/scribe"
+	"github.com/paketo-buildpacks/packit/v2/scribe"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"

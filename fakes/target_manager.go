@@ -1,6 +1,8 @@
 package fakes
 
-import "sync"
+import (
+	"sync"
+)
 
 type TargetManager struct {
 	CleanAndValidateCall struct {

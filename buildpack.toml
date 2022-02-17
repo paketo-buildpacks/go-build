@@ -1,9 +1,10 @@
-api = "0.6"
+api = "0.7"
 
 [buildpack]
   homepage = "https://github.com/paketo-buildpacks/go-build"
   id = "paketo-buildpacks/go-build"
   name = "Paketo Go Build Buildpack"
+  sbom-formats = ["application/vnd.cyclonedx+json","application/spdx+json","application/vnd.syft+json"]
 
   [[buildpack.licenses]]
     type = "Apache-2.0"

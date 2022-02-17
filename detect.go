@@ -5,7 +5,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/paketo-buildpacks/packit"
+	"github.com/paketo-buildpacks/packit/v2"
 )
 
 //go:generate faux --interface ConfigurationParser --output fakes/configuration_parser.go

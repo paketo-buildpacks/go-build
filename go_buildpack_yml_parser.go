@@ -8,7 +8,7 @@ import (
 
 	"github.com/Masterminds/semver"
 	"github.com/buildkite/interpolate"
-	"github.com/paketo-buildpacks/packit/scribe"
+	"github.com/paketo-buildpacks/packit/v2/scribe"
 	"gopkg.in/yaml.v2"
 )
 

@@ -12,9 +12,10 @@ import (
 
 	gobuild "github.com/paketo-buildpacks/go-build"
 	"github.com/paketo-buildpacks/go-build/fakes"
-	"github.com/paketo-buildpacks/packit"
-	"github.com/paketo-buildpacks/packit/chronos"
-	"github.com/paketo-buildpacks/packit/scribe"
+	"github.com/paketo-buildpacks/packit/v2"
+	"github.com/paketo-buildpacks/packit/v2/chronos"
+	"github.com/paketo-buildpacks/packit/v2/sbom"
+	"github.com/paketo-buildpacks/packit/v2/scribe"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
@@ -35,6 +36,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		sourceRemover      *fakes.SourceRemover
 		parser             *fakes.ConfigurationParser
 		checksumCalculator *fakes.ChecksumCalculator
+		sbomGenerator      *fakes.SBOMGenerator
 
 		build packit.BuildFunc
 	)
@@ -76,6 +78,9 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			ImportPath: "some-import-path",
 		}
 
+		sbomGenerator = &fakes.SBOMGenerator{}
+		sbomGenerator.GenerateCall.Returns.SBOM = sbom.SBOM{}
+
 		build = gobuild.Build(
 			parser,
 			buildProcess,
@@ -84,6 +89,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			clock,
 			scribe.NewEmitter(logs),
 			sourceRemover,
+			sbomGenerator,
 		)
 	})
 
@@ -99,56 +105,56 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			CNBPath:    cnbDir,
 			Stack:      "some-stack",
 			BuildpackInfo: packit.BuildpackInfo{
-				Name:    "Some Buildpack",
-				Version: "some-version",
+				Name:        "Some Buildpack",
+				Version:     "some-version",
+				SBOMFormats: []string{sbom.CycloneDXFormat, sbom.SPDXFormat},
 			},
 			Layers: packit.Layers{Path: layersDir},
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(result).To(Equal(packit.BuildResult{
-			Layers: []packit.Layer{
-				{
-					Name:             "targets",
-					Path:             filepath.Join(layersDir, "targets"),
-					SharedEnv:        packit.Environment{},
-					BuildEnv:         packit.Environment{},
-					LaunchEnv:        packit.Environment{},
-					ProcessLaunchEnv: map[string]packit.Environment{},
-					Build:            false,
-					Launch:           true,
-					Cache:            false,
-					Metadata: map[string]interface{}{
-						"cache_sha": "some-checksum",
-						"built_at":  timestamp.Format(time.RFC3339Nano),
-					},
-				},
-				{
-					Name:             "gocache",
-					Path:             filepath.Join(layersDir, "gocache"),
-					SharedEnv:        packit.Environment{},
-					BuildEnv:         packit.Environment{},
-					LaunchEnv:        packit.Environment{},
-					ProcessLaunchEnv: map[string]packit.Environment{},
-					Build:            false,
-					Launch:           false,
-					Cache:            true,
-				},
+		Expect(result.Layers).To(HaveLen(2))
+
+		targets := result.Layers[0]
+		Expect(targets.Name).To(Equal("targets"))
+		Expect(targets.Path).To(Equal(filepath.Join(layersDir, "targets")))
+		Expect(targets.Metadata).To(Equal(map[string]interface{}{
+			"cache_sha": "some-checksum",
+			"built_at":  timestamp.Format(time.RFC3339Nano),
+		}))
+		Expect(targets.Build).To(BeFalse())
+		Expect(targets.Cache).To(BeFalse())
+		Expect(targets.Launch).To(BeTrue())
+
+		Expect(targets.SBOM.Formats()).To(Equal([]packit.SBOMFormat{
+			{
+				Extension: sbom.Format(sbom.CycloneDXFormat).Extension(),
+				Content:   sbom.NewFormattedReader(sbom.SBOM{}, sbom.CycloneDXFormat),
 			},
-			Launch: packit.LaunchMetadata{
-				Processes: []packit.Process{
-					{
-						Type:    "some-start-command",
-						Command: "path/some-start-command",
-						Direct:  true,
-						Default: true,
-					},
-					{
-						Type:    "another-start-command",
-						Command: "path/another-start-command",
-						Direct:  true,
-					},
-				},
+			{
+				Extension: sbom.Format(sbom.SPDXFormat).Extension(),
+				Content:   sbom.NewFormattedReader(sbom.SBOM{}, sbom.SPDXFormat),
+			},
+		}))
+
+		gocache := result.Layers[1]
+		Expect(gocache.Name).To(Equal("gocache"))
+		Expect(gocache.Path).To(Equal(filepath.Join(layersDir, "gocache")))
+		Expect(gocache.Build).To(BeFalse())
+		Expect(gocache.Cache).To(BeTrue())
+		Expect(gocache.Launch).To(BeFalse())
+
+		Expect(result.Launch.Processes).To(Equal([]packit.Process{
+			{
+				Type:    "some-start-command",
+				Command: "path/some-start-command",
+				Direct:  true,
+				Default: true,
+			},
+			{
+				Type:    "another-start-command",
+				Command: "path/another-start-command",
+				Direct:  true,
 			},
 		}))
 
@@ -170,6 +176,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		Expect(pathManager.TeardownCall.Receives.GoPath).To(Equal("some-go-path"))
 
 		Expect(sourceRemover.ClearCall.Receives.Path).To(Equal(workingDir))
+		Expect(sbomGenerator.GenerateCall.Receives.Dir).To(Equal(filepath.Join(targets.Path, "bin")))
 
 		Expect(logs.String()).To(ContainSubstring("Some Buildpack some-version"))
 		Expect(logs.String()).To(ContainSubstring("Assigning launch processes"))
@@ -252,53 +259,20 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(result).To(Equal(packit.BuildResult{
-				Layers: []packit.Layer{
-					{
-						Name:             "targets",
-						Path:             filepath.Join(layersDir, "targets"),
-						SharedEnv:        packit.Environment{},
-						BuildEnv:         packit.Environment{},
-						LaunchEnv:        packit.Environment{},
-						ProcessLaunchEnv: map[string]packit.Environment{},
-						Build:            false,
-						Launch:           true,
-						Cache:            false,
-						Metadata: map[string]interface{}{
-							"cache_sha": "some-checksum",
-							"built_at":  timestamp.Format(time.RFC3339Nano),
-						},
-					},
-					{
-						Name:             "gocache",
-						Path:             filepath.Join(layersDir, "gocache"),
-						SharedEnv:        packit.Environment{},
-						BuildEnv:         packit.Environment{},
-						LaunchEnv:        packit.Environment{},
-						ProcessLaunchEnv: map[string]packit.Environment{},
-						Build:            false,
-						Launch:           false,
-						Cache:            true,
-					},
+			Expect(result.Launch.Processes).To(Equal([]packit.Process{
+				{
+					Type:    "some-start-command",
+					Command: "path/some-start-command",
+					Direct:  true,
+					Default: true,
 				},
-				Launch: packit.LaunchMetadata{
-					Processes: []packit.Process{
-						{
-							Type:    "some-start-command",
-							Command: "path/some-start-command",
-							Direct:  true,
-							Default: true,
-						},
-						{
-							Type:    "another-start-command",
-							Command: "path/another-start-command",
-							Direct:  true,
-						},
-					},
+				{
+					Type:    "another-start-command",
+					Command: "path/another-start-command",
+					Direct:  true,
 				},
 			}))
 		})
-
 	})
 
 	context("when the targets were previously built", func() {
@@ -312,7 +286,7 @@ launch = true
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		it("returns a result that builds correctly", func() {
+		it("uses the cached layer", func() {
 			result, err := build(packit.BuildContext{
 				WorkingDir: workingDir,
 				CNBPath:    cnbDir,
@@ -325,51 +299,18 @@ launch = true
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(result).To(Equal(packit.BuildResult{
-				Layers: []packit.Layer{
-					{
-						Name:             "targets",
-						Path:             filepath.Join(layersDir, "targets"),
-						SharedEnv:        packit.Environment{},
-						BuildEnv:         packit.Environment{},
-						LaunchEnv:        packit.Environment{},
-						ProcessLaunchEnv: map[string]packit.Environment{},
-						Build:            false,
-						Launch:           true,
-						Cache:            false,
-						Metadata: map[string]interface{}{
-							"cache_sha": "some-checksum",
-							"built_at":  timestamp.Add(-10 * time.Second).Format(time.RFC3339Nano),
-						},
-					},
-					{
-						Name:             "gocache",
-						Path:             filepath.Join(layersDir, "gocache"),
-						SharedEnv:        packit.Environment{},
-						BuildEnv:         packit.Environment{},
-						LaunchEnv:        packit.Environment{},
-						ProcessLaunchEnv: map[string]packit.Environment{},
-						Build:            false,
-						Launch:           false,
-						Cache:            true,
-					},
-				},
-				Launch: packit.LaunchMetadata{
-					Processes: []packit.Process{
-						{
-							Type:    "some-start-command",
-							Command: "path/some-start-command",
-							Direct:  true,
-							Default: true,
-						},
-						{
-							Type:    "another-start-command",
-							Command: "path/another-start-command",
-							Direct:  true,
-						},
-					},
-				},
+			Expect(result.Layers).To(HaveLen(2))
+			targets := result.Layers[0]
+			Expect(targets.Name).To(Equal("targets"))
+			Expect(targets.Path).To(Equal(filepath.Join(layersDir, "targets")))
+			Expect(targets.Metadata).To(Equal(map[string]interface{}{
+				"cache_sha": "some-checksum",
+				"built_at":  timestamp.Add(-10 * time.Second).Format(time.RFC3339Nano),
 			}))
+			Expect(targets.Build).To(BeFalse())
+			Expect(targets.Cache).To(BeFalse())
+			Expect(targets.Launch).To(BeTrue())
+			// TODO: assertions about gocache layer
 		})
 	})
 
@@ -557,6 +498,40 @@ launch = true
 					Layers: packit.Layers{Path: layersDir},
 				})
 				Expect(err).To(MatchError(ContainSubstring("cannot enable live reload on stack 'io.paketo.stacks.tiny': stack does not support watchexec")))
+			})
+		})
+		context("when an SBOM cannot be generated", func() {
+			it.Before(func() {
+				sbomGenerator.GenerateCall.Returns.Error = errors.New("sbom generation error")
+			})
+			it("fails the build and returns the error", func() {
+				_, err := build(packit.BuildContext{
+					WorkingDir: workingDir,
+					CNBPath:    cnbDir,
+					Stack:      "io.paketo.stacks.tiny",
+					BuildpackInfo: packit.BuildpackInfo{
+						Name:    "Some Buildpack",
+						Version: "some-version",
+					},
+					Layers: packit.Layers{Path: layersDir},
+				})
+				Expect(err).To(MatchError("sbom generation error"))
+			})
+		})
+		context("when a requested SBOM format is invalid", func() {
+			it("fails the build and returns the error", func() {
+				_, err := build(packit.BuildContext{
+					WorkingDir: workingDir,
+					CNBPath:    cnbDir,
+					Stack:      "io.paketo.stacks.tiny",
+					BuildpackInfo: packit.BuildpackInfo{
+						Name:        "Some Buildpack",
+						Version:     "some-version",
+						SBOMFormats: []string{"invalid-format"},
+					},
+					Layers: packit.Layers{Path: layersDir},
+				})
+				Expect(err).To(MatchError(`"invalid-format" is not a supported SBOM format`))
 			})
 		})
 	})
