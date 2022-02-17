@@ -120,7 +120,7 @@ func Build(
 			return packit.BuildResult{}, err
 		}
 
-		logs.Process("Generating SBOM")
+		logs.GeneratingSBOM(filepath.Join(targetsLayer.Path, "bin"))
 
 		var sbomContent sbom.SBOM
 		duration, err := clock.Measure(func() error {
@@ -131,13 +131,13 @@ func Build(
 			return packit.BuildResult{}, err
 		}
 		logs.Action("Completed in %s", duration.Round(time.Millisecond))
+		logs.Break()
 
+		logs.FormattingSBOM(context.BuildpackInfo.SBOMFormats...)
 		targetsLayer.SBOM, err = sbomContent.InFormats(context.BuildpackInfo.SBOMFormats...)
 		if err != nil {
 			return packit.BuildResult{}, err
 		}
-
-		logs.Break()
 
 		var processes []packit.Process
 		for index, binary := range binaries {

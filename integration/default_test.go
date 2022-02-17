@@ -33,14 +33,19 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			image     occam.Image
 			container occam.Container
 
-			name   string
-			source string
+			name    string
+			source  string
+			sbomDir string
 		)
 
 		it.Before(func() {
 			var err error
 			name, err = occam.RandomName()
 			Expect(err).NotTo(HaveOccurred())
+
+			sbomDir, err = os.MkdirTemp("", "sbom")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(os.Chmod(sbomDir, os.ModePerm)).To(Succeed())
 		})
 
 		it.After(func() {
@@ -62,6 +67,10 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 					settings.Buildpacks.GoDist.Online,
 					settings.Buildpacks.GoBuild.Online,
 				).
+				WithEnv(map[string]string{
+					"BP_LOG_LEVEL": "DEBUG",
+				}).
+				WithSBOMOutputDir(sbomDir).
 				Execute(name, source)
 			Expect(err).ToNot(HaveOccurred(), logs.String)
 
@@ -87,11 +96,33 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 				fmt.Sprintf("    Running 'go build -o /layers/%s/targets/bin -buildmode pie -trimpath .'", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 				MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
 				"",
-				"  Generating SBOM",
+				fmt.Sprintf("  Generating SBOM for directory /layers/%s/targets/bin", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 				MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
+				"",
+				"  Writing SBOM in the following format(s):",
+				"    application/vnd.cyclonedx+json",
+				"    application/spdx+json",
+				"    application/vnd.syft+json",
 				"",
 				"  Assigning launch processes:",
 				fmt.Sprintf("    workspace (default): /layers/%s/targets/bin/workspace", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+			))
+
+			// check that all required SBOM files are present
+			Expect(filepath.Join(sbomDir, "sbom", "launch", strings.ReplaceAll(settings.Buildpack.ID, "/", "_"), "targets", "sbom.cdx.json")).To(BeARegularFile())
+			Expect(filepath.Join(sbomDir, "sbom", "launch", strings.ReplaceAll(settings.Buildpack.ID, "/", "_"), "targets", "sbom.spdx.json")).To(BeARegularFile())
+			Expect(filepath.Join(sbomDir, "sbom", "launch", strings.ReplaceAll(settings.Buildpack.ID, "/", "_"), "targets", "sbom.syft.json")).To(BeARegularFile())
+
+			// check an SBOM file to make sure it is generated for the right directory
+			contents, err := os.ReadFile(filepath.Join(sbomDir, "sbom", "launch", strings.ReplaceAll(settings.Buildpack.ID, "/", "_"), "targets", "sbom.cdx.json"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(contents)).To(ContainLines(
+				`    "component": {`,
+				`      "bom-ref": "8f840e865ce168d",`,
+				`      "type": "file",`,
+				`      "name": "/layers/paketo-buildpacks_go-build/targets/bin",`,
+				`      "version": ""`,
+				`    }`,
 			))
 		})
 	})

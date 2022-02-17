@@ -19,7 +19,7 @@ func (f Generator) Generate(dir string) (sbom.SBOM, error) {
 }
 
 func main() {
-	emitter := scribe.NewEmitter(os.Stdout)
+	emitter := scribe.NewEmitter(os.Stdout).WithLevel(os.Getenv("BP_LOG_LEVEL"))
 	configParser := gobuild.NewBuildConfigurationParser(gobuild.NewGoTargetManager(), gobuild.NewGoBuildpackYMLParser(emitter))
 
 	packit.Run(
