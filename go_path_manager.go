@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/paketo-buildpacks/packit/fs"
+	"github.com/paketo-buildpacks/packit/v2/fs"
 )
 
 type GoPathManager struct {

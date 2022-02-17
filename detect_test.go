@@ -7,7 +7,7 @@ import (
 
 	gobuild "github.com/paketo-buildpacks/go-build"
 	"github.com/paketo-buildpacks/go-build/fakes"
-	"github.com/paketo-buildpacks/packit"
+	"github.com/paketo-buildpacks/packit/v2"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"

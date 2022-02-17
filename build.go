@@ -5,9 +5,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/paketo-buildpacks/packit"
-	"github.com/paketo-buildpacks/packit/chronos"
-	"github.com/paketo-buildpacks/packit/scribe"
+	"github.com/paketo-buildpacks/packit/v2"
+	"github.com/paketo-buildpacks/packit/v2/chronos"
+	"github.com/paketo-buildpacks/packit/v2/sbom"
+	"github.com/paketo-buildpacks/packit/v2/scribe"
 )
 
 //go:generate faux --interface BuildProcess --output fakes/build_process.go
@@ -31,6 +32,11 @@ type SourceRemover interface {
 	Clear(path string) error
 }
 
+//go:generate faux --interface SBOMGenerator --output fakes/sbom_generator.go
+type SBOMGenerator interface {
+	Generate(dir string) (sbom.SBOM, error)
+}
+
 func Build(
 	parser ConfigurationParser,
 	buildProcess BuildProcess,
@@ -39,6 +45,7 @@ func Build(
 	clock chronos.Clock,
 	logs scribe.Emitter,
 	sourceRemover SourceRemover,
+	sbomGenerator SBOMGenerator,
 ) packit.BuildFunc {
 	return func(context packit.BuildContext) (packit.BuildResult, error) {
 		logs.Title("%s %s", context.BuildpackInfo.Name, context.BuildpackInfo.Version)
@@ -112,6 +119,25 @@ func Build(
 		if err != nil {
 			return packit.BuildResult{}, err
 		}
+
+		logs.Process("Generating SBOM")
+
+		var sbomContent sbom.SBOM
+		duration, err := clock.Measure(func() error {
+			sbomContent, err = sbomGenerator.Generate(filepath.Join(targetsLayer.Path, "bin"))
+			return err
+		})
+		if err != nil {
+			return packit.BuildResult{}, err
+		}
+		logs.Action("Completed in %s", duration.Round(time.Millisecond))
+
+		targetsLayer.SBOM, err = sbomContent.InFormats(context.BuildpackInfo.SBOMFormats...)
+		if err != nil {
+			return packit.BuildResult{}, err
+		}
+
+		logs.Break()
 
 		var processes []packit.Process
 		for index, binary := range binaries {

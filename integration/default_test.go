@@ -87,6 +87,9 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 				fmt.Sprintf("    Running 'go build -o /layers/%s/targets/bin -buildmode pie -trimpath .'", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 				MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
 				"",
+				"  Generating SBOM",
+				MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
+				"",
 				"  Assigning launch processes:",
 				fmt.Sprintf("    workspace (default): /layers/%s/targets/bin/workspace", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 			))
@@ -252,11 +255,6 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			Eventually(container).Should(Serve(ContainSubstring("go1.16")).OnPort(8080))
 
 			Expect(logs).To(ContainLines(
-				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
-				"  Executing build process",
-				fmt.Sprintf("    Running 'go build -o /layers/%s/targets/bin -buildmode pie -trimpath .'", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
-				MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
-				"",
 				"  Assigning launch processes:",
 				fmt.Sprintf("    workspace:                  /layers/%s/targets/bin/workspace", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 				fmt.Sprintf("    reload-workspace (default): watchexec --restart --watch /workspace --watch /layers/%[1]s/targets/bin -- /layers/%[1]s/targets/bin/workspace", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
