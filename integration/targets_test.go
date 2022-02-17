@@ -16,9 +16,8 @@ import (
 
 func testTargets(t *testing.T, context spec.G, it spec.S) {
 	var (
-		Expect       = NewWithT(t).Expect
-		Eventually   = NewWithT(t).Eventually
-		Consistently = NewWithT(t).Consistently
+		Expect     = NewWithT(t).Expect
+		Eventually = NewWithT(t).Eventually
 
 		pack   occam.Pack
 		docker occam.Docker
@@ -34,6 +33,7 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 			image        occam.Image
 			container    occam.Container
 			containerIDs map[string]struct{}
+			sbomDir      string
 
 			name   string
 			source string
@@ -48,6 +48,10 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 
 			source, err = occam.Source(filepath.Join("testdata", "targets"))
 			Expect(err).NotTo(HaveOccurred())
+
+			sbomDir, err = os.MkdirTemp("", "sbom")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(os.Chmod(sbomDir, os.ModePerm)).To(Succeed())
 		})
 
 		it.After(func() {
@@ -69,6 +73,7 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 					settings.Buildpacks.GoDist.Online,
 					settings.Buildpacks.GoBuild.Online,
 				).
+				WithSBOMOutputDir(sbomDir).
 				Execute(name, source)
 			Expect(err).ToNot(HaveOccurred(), logs.String)
 
@@ -88,54 +93,18 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 				fmt.Sprintf("    second:          /layers/%s/targets/bin/second", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 			))
 
-			// check that all expected SBOM files are present
-			container, err = docker.Container.Run.
-				WithCommand(fmt.Sprintf("ls -al /layers/sbom/launch/%s/targets/",
-					strings.ReplaceAll(settings.Buildpack.ID, "/", "_"))).
-				WithEntrypoint("launcher").
-				Execute(image.ID)
+			// check that all required SBOM files are present
+			Expect(filepath.Join(sbomDir, "sbom", "launch", strings.ReplaceAll(settings.Buildpack.ID, "/", "_"), "targets", "sbom.cdx.json")).To(BeARegularFile())
+			Expect(filepath.Join(sbomDir, "sbom", "launch", strings.ReplaceAll(settings.Buildpack.ID, "/", "_"), "targets", "sbom.spdx.json")).To(BeARegularFile())
+			Expect(filepath.Join(sbomDir, "sbom", "launch", strings.ReplaceAll(settings.Buildpack.ID, "/", "_"), "targets", "sbom.syft.json")).To(BeARegularFile())
+
+			// check an SBOM file to make sure it contains entries for built binaries
+			contents, err := os.ReadFile(filepath.Join(sbomDir, "sbom", "launch", strings.ReplaceAll(settings.Buildpack.ID, "/", "_"), "targets", "sbom.cdx.json"))
 			Expect(err).NotTo(HaveOccurred())
-			containerIDs[container.ID] = struct{}{}
-
-			Eventually(func() string {
-				cLogs, err := docker.Container.Logs.Execute(container.ID)
-				Expect(err).NotTo(HaveOccurred())
-				return cLogs.String()
-			}).Should(And(
-				ContainSubstring("sbom.cdx.json"),
-				ContainSubstring("sbom.spdx.json"),
-				ContainSubstring("sbom.syft.json"),
-			))
-
-			// check an SBOM file to make sure it has entries for built targets
-			container, err = docker.Container.Run.
-				WithCommand(fmt.Sprintf("cat /layers/sbom/launch/%s/targets/sbom.cdx.json",
-					strings.ReplaceAll(settings.Buildpack.ID, "/", "_"))).
-				WithEntrypoint("launcher").
-				Execute(image.ID)
-			Expect(err).NotTo(HaveOccurred())
-			containerIDs[container.ID] = struct{}{}
-
-			// a package in `first` executable
-			Eventually(func() string {
-				cLogs, err := docker.Container.Logs.Execute(container.ID)
-				Expect(err).NotTo(HaveOccurred())
-				return cLogs.String()
-			}).Should(ContainSubstring(`"name": "github.com/gorilla/mux"`))
-
-			// a package in `second` executable
-			Eventually(func() string {
-				cLogs, err := docker.Container.Logs.Execute(container.ID)
-				Expect(err).NotTo(HaveOccurred())
-				return cLogs.String()
-			}).Should(ContainSubstring(`"name": "github.com/sahilm/fuzzy"`))
-
-			// The SBOM shouldn't contain entries for `third` since it was not built
-			Consistently(func() string {
-				cLogs, err := docker.Container.Logs.Execute(container.ID)
-				Expect(err).NotTo(HaveOccurred())
-				return cLogs.String()
-			}).ShouldNot(ContainSubstring(`"name": "github.com/Masterminds/semver"`))
+			Expect(string(contents)).To(ContainSubstring(`"name": "github.com/gorilla/mux"`))
+			Expect(string(contents)).To(ContainSubstring(`"name": "github.com/sahilm/fuzzy"`))
+			// and does not contain an entry for the binary that was not compiled
+			Expect(string(contents)).NotTo(ContainSubstring(`"name": "github.com/Masterminds/semver"`))
 		})
 
 		it("the other binary can be accessed using its name as an entrypoint", func() {
