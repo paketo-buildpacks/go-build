@@ -4,7 +4,7 @@ api = "0.7"
   homepage = "https://github.com/paketo-buildpacks/go-build"
   id = "paketo-buildpacks/go-build"
   name = "Paketo Go Build Buildpack"
-  sbom-formats = ["application/vnd.cyclonedx+json","application/spdx+json","application/vnd.syft+json"]
+  sbom-formats = ["application/vnd.cyclonedx+json", "application/spdx+json", "application/vnd.syft+json"]
 
   [[buildpack.licenses]]
     type = "Apache-2.0"
