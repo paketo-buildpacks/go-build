@@ -1,7 +1,6 @@
 package gobuild
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,11 +15,6 @@ type TargetManager interface {
 	GenerateDefaults(workingDir string) ([]string, error)
 }
 
-//go:generate faux --interface BuildpackYMLParser --output fakes/buildpack_yml_parser.go
-type BuildpackYMLParser interface {
-	Parse(buildpackVersion, workingDir string) (BuildConfiguration, error)
-}
-
 type BuildConfiguration struct {
 	Targets    []string
 	Flags      []string
@@ -28,36 +22,23 @@ type BuildConfiguration struct {
 }
 
 type BuildConfigurationParser struct {
-	targetManager      TargetManager
-	buildpackYMLParser BuildpackYMLParser
+	targetManager TargetManager
 }
 
-func NewBuildConfigurationParser(targetManager TargetManager, buildpackYMLParser BuildpackYMLParser) BuildConfigurationParser {
+func NewBuildConfigurationParser(targetManager TargetManager) BuildConfigurationParser {
 	return BuildConfigurationParser{
-		targetManager:      targetManager,
-		buildpackYMLParser: buildpackYMLParser,
+		targetManager: targetManager,
 	}
 }
 
 func (p BuildConfigurationParser) Parse(buildpackVersion, workingDir string) (BuildConfiguration, error) {
 	var buildConfiguration BuildConfiguration
 
-	_, err := os.Stat(filepath.Join(workingDir, "buildpack.yml"))
-	if err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			return BuildConfiguration{}, err
-		}
-	} else {
-		buildConfiguration, err = p.buildpackYMLParser.Parse(buildpackVersion, workingDir)
-		if err != nil {
-			return BuildConfiguration{}, err
-		}
-	}
-
 	if val, ok := os.LookupEnv("BP_GO_TARGETS"); ok {
 		buildConfiguration.Targets = filepath.SplitList(val)
 	}
 
+	var err error
 	if len(buildConfiguration.Targets) > 0 {
 		buildConfiguration.Targets, err = p.targetManager.CleanAndValidate(buildConfiguration.Targets, workingDir)
 		if err != nil {
