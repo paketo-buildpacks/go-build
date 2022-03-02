@@ -13,7 +13,6 @@ func TestUnitGoBuild(t *testing.T) {
 	suite("BuildConfigurationParser", testBuildConfigurationParser, spec.Sequential())
 	suite("Detect", testDetect, spec.Sequential())
 	suite("GoBuildProcess", testGoBuildProcess)
-	suite("GoBuildpackYMLParser", testGoBuildpackYMLParser)
 	suite("GoPathManager", testGoPathManager)
 	suite("GoTargetManager", testGoTargetManager)
 	suite("SourceDeleter", testSourceDeleter)
