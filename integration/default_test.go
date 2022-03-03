@@ -53,6 +53,7 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			Expect(docker.Volume.Remove.Execute(occam.CacheVolumeNames(name))).To(Succeed())
 			Expect(docker.Image.Remove.Execute(image.ID)).To(Succeed())
 			Expect(os.RemoveAll(source)).To(Succeed())
+			Expect(os.RemoveAll(sbomDir)).To(Succeed())
 		})
 
 		it("builds successfully", func() {
@@ -114,15 +115,11 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			Expect(filepath.Join(sbomDir, "sbom", "launch", strings.ReplaceAll(settings.Buildpack.ID, "/", "_"), "targets", "sbom.syft.json")).To(BeARegularFile())
 
 			// check an SBOM file to make sure it is generated for the right directory
-			contents, err := os.ReadFile(filepath.Join(sbomDir, "sbom", "launch", strings.ReplaceAll(settings.Buildpack.ID, "/", "_"), "targets", "sbom.cdx.json"))
+			contents, err := os.ReadFile(filepath.Join(sbomDir, "sbom", "launch", strings.ReplaceAll(settings.Buildpack.ID, "/", "_"), "targets", "sbom.syft.json"))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(contents)).To(ContainLines(
-				`    "component": {`,
-				`      "bom-ref": "8f840e865ce168d",`,
-				`      "type": "file",`,
-				`      "name": "/layers/paketo-buildpacks_go-build/targets/bin",`,
-				`      "version": ""`,
-				`    }`,
+				`  "type": "directory",`,
+				fmt.Sprintf(`  "target": "/layers/%s/targets/bin"`, strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 			))
 		})
 	})
