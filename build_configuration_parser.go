@@ -1,6 +1,7 @@
 package gobuild
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -32,13 +33,19 @@ func NewBuildConfigurationParser(targetManager TargetManager) BuildConfiguration
 }
 
 func (p BuildConfigurationParser) Parse(buildpackVersion, workingDir string) (BuildConfiguration, error) {
-	var buildConfiguration BuildConfiguration
+	_, err := os.Stat(filepath.Join(workingDir, "buildpack.yml"))
+	if err == nil {
+		return BuildConfiguration{}, fmt.Errorf("working directory contains deprecated 'buildpack.yml'; use environment variables for configuration")
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		return BuildConfiguration{}, fmt.Errorf("failed to check for buildpack.yml: %w", err)
+	}
 
+	var buildConfiguration BuildConfiguration
 	if val, ok := os.LookupEnv("BP_GO_TARGETS"); ok {
 		buildConfiguration.Targets = filepath.SplitList(val)
 	}
 
-	var err error
 	if len(buildConfiguration.Targets) > 0 {
 		buildConfiguration.Targets, err = p.targetManager.CleanAndValidate(buildConfiguration.Targets, workingDir)
 		if err != nil {
