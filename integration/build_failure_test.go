@@ -79,4 +79,45 @@ func testBuildFailure(t *testing.T, context spec.G, it spec.S) {
 			))
 		})
 	})
+
+	context("when building an app that has a buildpack.yml", func() {
+		var (
+			name   string
+			source string
+		)
+
+		it.Before(func() {
+			var err error
+			name, err = occam.RandomName()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		it.After(func() {
+			Expect(docker.Volume.Remove.Execute(occam.CacheVolumeNames(name))).To(Succeed())
+			Expect(os.RemoveAll(source)).To(Succeed())
+		})
+
+		it("fails the build", func() {
+			var err error
+			source, err = occam.Source(filepath.Join("testdata", "default"))
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(os.WriteFile(filepath.Join(source, "buildpack.yml"), nil, os.ModePerm)).To(Succeed())
+
+			_, logs, err := pack.Build.
+				WithPullPolicy("never").
+				WithBuildpacks(
+					settings.Buildpacks.GoDist.Online,
+					settings.Buildpacks.GoBuild.Online,
+				).
+				Execute(name, source)
+			Expect(err).To(HaveOccurred(), logs.String)
+
+			Expect(logs).To(ContainSubstring("working directory contains deprecated 'buildpack.yml'; use environment variables for configuration"))
+			Expect(logs).NotTo(ContainLines(
+				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
+				"  Executing build process",
+			))
+		})
+	})
 }
