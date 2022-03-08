@@ -1,13 +1,13 @@
 package gobuild
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/mattn/go-shellwords"
+	"github.com/paketo-buildpacks/packit/v2/fs"
 )
 
 //go:generate faux --interface TargetManager --output fakes/target_manager.go
@@ -33,12 +33,12 @@ func NewBuildConfigurationParser(targetManager TargetManager) BuildConfiguration
 }
 
 func (p BuildConfigurationParser) Parse(buildpackVersion, workingDir string) (BuildConfiguration, error) {
-	_, err := os.Stat(filepath.Join(workingDir, "buildpack.yml"))
-	if err == nil {
-		return BuildConfiguration{}, fmt.Errorf("working directory contains deprecated 'buildpack.yml'; use environment variables for configuration")
-	}
-	if !errors.Is(err, os.ErrNotExist) {
+	bpYML, err := fs.Exists(filepath.Join(workingDir, "buildpack.yml"))
+	if err != nil {
 		return BuildConfiguration{}, fmt.Errorf("failed to check for buildpack.yml: %w", err)
+	}
+	if bpYML {
+		return BuildConfiguration{}, fmt.Errorf("working directory contains deprecated 'buildpack.yml'; use environment variables for configuration")
 	}
 
 	var buildConfiguration BuildConfiguration
