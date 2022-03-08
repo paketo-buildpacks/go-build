@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/mattn/go-shellwords"
+	"github.com/paketo-buildpacks/packit/v2/fs"
 )
 
 //go:generate faux --interface TargetManager --output fakes/target_manager.go
@@ -32,13 +33,19 @@ func NewBuildConfigurationParser(targetManager TargetManager) BuildConfiguration
 }
 
 func (p BuildConfigurationParser) Parse(buildpackVersion, workingDir string) (BuildConfiguration, error) {
-	var buildConfiguration BuildConfiguration
+	bpYML, err := fs.Exists(filepath.Join(workingDir, "buildpack.yml"))
+	if err != nil {
+		return BuildConfiguration{}, fmt.Errorf("failed to check for buildpack.yml: %w", err)
+	}
+	if bpYML {
+		return BuildConfiguration{}, fmt.Errorf("working directory contains deprecated 'buildpack.yml'; use environment variables for configuration")
+	}
 
+	var buildConfiguration BuildConfiguration
 	if val, ok := os.LookupEnv("BP_GO_TARGETS"); ok {
 		buildConfiguration.Targets = filepath.SplitList(val)
 	}
 
-	var err error
 	if len(buildConfiguration.Targets) > 0 {
 		buildConfiguration.Targets, err = p.targetManager.CleanAndValidate(buildConfiguration.Targets, workingDir)
 		if err != nil {

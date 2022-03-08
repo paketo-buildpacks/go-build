@@ -3,6 +3,7 @@ package gobuild_test
 import (
 	"errors"
 	"os"
+	"path/filepath"
 	"testing"
 
 	gobuild "github.com/paketo-buildpacks/go-build"
@@ -195,18 +196,36 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	context("failure cases", func() {
+		context("when the working directory contains a buildpack.yml", func() {
+			it.Before(func() {
+				Expect(os.WriteFile(filepath.Join(workingDir, "buildpack.yml"), nil, os.ModePerm)).To(Succeed())
+			})
+			it("returns an error", func() {
+				_, err := parser.Parse("1.2.3", workingDir)
+				Expect(err).To(MatchError("working directory contains deprecated 'buildpack.yml'; use environment variables for configuration"))
+			})
+			context("and it's not readable", func() {
+				it.Before(func() {
+					Expect(os.Chmod(workingDir, 0000)).To(Succeed())
+				})
+
+				it.After(func() {
+					Expect(os.Chmod(workingDir, os.ModePerm)).To(Succeed())
+				})
+				it("returns the error from stat", func() {
+					_, err := parser.Parse("1.2.3", workingDir)
+					Expect(err).To(MatchError(ContainSubstring("permission denied")))
+				})
+			})
+		})
 		context("go targets fail to be cleaned an validated", func() {
 			it.Before(func() {
 				os.Setenv("BP_GO_TARGETS", "./some/target")
-
 				targetManager.CleanAndValidateCall.Returns.Error = errors.New("failed to clean and validate targets")
-
 			})
-
 			it.After(func() {
 				os.Unsetenv("BP_GO_TARGETS")
 			})
-
 			it("returns an error", func() {
 				_, err := parser.Parse("1.2.3", workingDir)
 				Expect(err).To(MatchError("failed to clean and validate targets"))
