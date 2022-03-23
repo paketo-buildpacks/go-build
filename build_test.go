@@ -3,12 +3,9 @@ package gobuild_test
 import (
 	"bytes"
 	"errors"
-	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	gobuild "github.com/paketo-buildpacks/go-build"
 	"github.com/paketo-buildpacks/go-build/fakes"
@@ -28,15 +25,13 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		layersDir  string
 		workingDir string
 		cnbDir     string
-		timestamp  time.Time
 		logs       *bytes.Buffer
 
-		buildProcess       *fakes.BuildProcess
-		pathManager        *fakes.PathManager
-		sourceRemover      *fakes.SourceRemover
-		parser             *fakes.ConfigurationParser
-		checksumCalculator *fakes.ChecksumCalculator
-		sbomGenerator      *fakes.SBOMGenerator
+		buildProcess  *fakes.BuildProcess
+		pathManager   *fakes.PathManager
+		sourceRemover *fakes.SourceRemover
+		parser        *fakes.ConfigurationParser
+		sbomGenerator *fakes.SBOMGenerator
 
 		build packit.BuildFunc
 	)
@@ -59,14 +54,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		pathManager.SetupCall.Returns.GoPath = "some-go-path"
 		pathManager.SetupCall.Returns.Path = "some-app-path"
 
-		timestamp = time.Now()
-		clock := chronos.NewClock(func() time.Time {
-			return timestamp
-		})
-
-		checksumCalculator = &fakes.ChecksumCalculator{}
-		checksumCalculator.SumCall.Returns.String = "some-checksum"
-
 		logs = bytes.NewBuffer(nil)
 
 		sourceRemover = &fakes.SourceRemover{}
@@ -84,9 +71,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		build = gobuild.Build(
 			parser,
 			buildProcess,
-			checksumCalculator,
 			pathManager,
-			clock,
+			chronos.DefaultClock,
 			scribe.NewEmitter(logs),
 			sourceRemover,
 			sbomGenerator,
@@ -118,10 +104,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		targets := result.Layers[0]
 		Expect(targets.Name).To(Equal("targets"))
 		Expect(targets.Path).To(Equal(filepath.Join(layersDir, "targets")))
-		Expect(targets.Metadata).To(Equal(map[string]interface{}{
-			"cache_sha": "some-checksum",
-			"built_at":  timestamp.Format(time.RFC3339Nano),
-		}))
 		Expect(targets.Build).To(BeFalse())
 		Expect(targets.Cache).To(BeFalse())
 		Expect(targets.Launch).To(BeTrue())
@@ -275,44 +257,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		})
 	})
 
-	context("when the targets were previously built", func() {
-		it.Before(func() {
-			err := ioutil.WriteFile(filepath.Join(layersDir, "targets.toml"), []byte(fmt.Sprintf(`
-launch = true
-[metadata]
-	cache_sha = "some-checksum"
-	built_at = "%s"
-`, timestamp.Add(-10*time.Second).Format(time.RFC3339Nano))), 0600)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		it("uses the cached layer", func() {
-			result, err := build(packit.BuildContext{
-				WorkingDir: workingDir,
-				CNBPath:    cnbDir,
-				Stack:      "some-stack",
-				BuildpackInfo: packit.BuildpackInfo{
-					Name:    "Some Buildpack",
-					Version: "some-version",
-				},
-				Layers: packit.Layers{Path: layersDir},
-			})
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(result.Layers).To(HaveLen(2))
-			targets := result.Layers[0]
-			Expect(targets.Name).To(Equal("targets"))
-			Expect(targets.Path).To(Equal(filepath.Join(layersDir, "targets")))
-			Expect(targets.Metadata).To(Equal(map[string]interface{}{
-				"cache_sha": "some-checksum",
-				"built_at":  timestamp.Add(-10 * time.Second).Format(time.RFC3339Nano),
-			}))
-			Expect(targets.Build).To(BeFalse())
-			Expect(targets.Cache).To(BeFalse())
-			Expect(targets.Launch).To(BeTrue())
-		})
-	})
-
 	context("failure cases", func() {
 		context("when the targets layer cannot be retrieved", func() {
 			it.Before(func() {
@@ -393,26 +337,6 @@ launch = true
 					Layers: packit.Layers{Path: layersDir},
 				})
 				Expect(err).To(MatchError("failed to execute build process"))
-			})
-		})
-
-		context("when the checksum cannot be calculated", func() {
-			it.Before(func() {
-				checksumCalculator.SumCall.Returns.Error = errors.New("failed to calculate checksum")
-			})
-
-			it("returns an error", func() {
-				_, err := build(packit.BuildContext{
-					WorkingDir: workingDir,
-					CNBPath:    cnbDir,
-					Stack:      "some-stack",
-					BuildpackInfo: packit.BuildpackInfo{
-						Name:    "Some Buildpack",
-						Version: "some-version",
-					},
-					Layers: packit.Layers{Path: layersDir},
-				})
-				Expect(err).To(MatchError("failed to calculate checksum"))
 			})
 		})
 

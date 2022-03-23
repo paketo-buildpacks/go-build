@@ -71,7 +71,7 @@ func testVendor(t *testing.T, context spec.G, it spec.S) {
 				Execute(image.ID)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(container).Should(Serve(ContainSubstring("go1.16")).OnPort(8080))
+			Eventually(container).Should(Serve(ContainSubstring("go1.17")).OnPort(8080))
 		})
 	})
 
@@ -120,7 +120,7 @@ func testVendor(t *testing.T, context spec.G, it spec.S) {
 				Execute(image.ID)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(container).Should(Serve(ContainSubstring("go1.16")).OnPort(8080))
+			Eventually(container).Should(Serve(ContainSubstring("go1.17")).OnPort(8080))
 		})
 	})
 }
