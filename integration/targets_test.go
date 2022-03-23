@@ -86,7 +86,7 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 			containerIDs[container.ID] = struct{}{}
 
-			Eventually(container).Should(Serve(ContainSubstring("first: go1.16")).OnPort(8080))
+			Eventually(container).Should(Serve(ContainSubstring("first: go1.17")).OnPort(8080))
 
 			Expect(logs).To(ContainLines(
 				"  Assigning launch processes:",
@@ -130,7 +130,7 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 			containerIDs[container.ID] = struct{}{}
 
-			Eventually(container).Should(Serve(ContainSubstring("second: go1.16")).OnPort(8080))
+			Eventually(container).Should(Serve(ContainSubstring("second: go1.17")).OnPort(8080))
 		})
 	})
 }

@@ -16,11 +16,6 @@ type BuildProcess interface {
 	Execute(config GoBuildConfiguration) (binaries []string, err error)
 }
 
-//go:generate faux --interface ChecksumCalculator --output fakes/checksum_calculator.go
-type ChecksumCalculator interface {
-	Sum(paths ...string) (string, error)
-}
-
 //go:generate faux --interface PathManager --output fakes/path_manager.go
 type PathManager interface {
 	Setup(workspace, importPath string) (goPath, path string, err error)
@@ -40,7 +35,6 @@ type SBOMGenerator interface {
 func Build(
 	parser ConfigurationParser,
 	buildProcess BuildProcess,
-	checksumCalculator ChecksumCalculator,
 	pathManager PathManager,
 	clock chronos.Clock,
 	logs scribe.Emitter,
@@ -95,19 +89,6 @@ func Build(
 		})
 		if err != nil {
 			return packit.BuildResult{}, err
-		}
-
-		sum, err := checksumCalculator.Sum(targetsLayer.Path)
-		if err != nil {
-			return packit.BuildResult{}, err
-		}
-
-		cachedSha, _ := targetsLayer.Metadata["cache_sha"].(string)
-		if cachedSha != sum {
-			targetsLayer.Metadata = map[string]interface{}{
-				"cache_sha": sum,
-				"built_at":  clock.Now().Format(time.RFC3339Nano),
-			}
 		}
 
 		err = pathManager.Teardown(goPath)
