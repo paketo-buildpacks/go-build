@@ -379,6 +379,43 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 				Expect(err).To(MatchError("failed to remove source"))
 			})
 		})
+
+		context("when an SBOM cannot be generated", func() {
+			it.Before(func() {
+				sbomGenerator.GenerateCall.Returns.Error = errors.New("sbom generation error")
+			})
+			it("fails the build and returns the error", func() {
+				_, err := build(packit.BuildContext{
+					WorkingDir: workingDir,
+					CNBPath:    cnbDir,
+					Stack:      "io.paketo.stacks.tiny",
+					BuildpackInfo: packit.BuildpackInfo{
+						Name:    "Some Buildpack",
+						Version: "some-version",
+					},
+					Layers: packit.Layers{Path: layersDir},
+				})
+				Expect(err).To(MatchError("sbom generation error"))
+			})
+		})
+
+		context("when a requested SBOM format is invalid", func() {
+			it("fails the build and returns the error", func() {
+				_, err := build(packit.BuildContext{
+					WorkingDir: workingDir,
+					CNBPath:    cnbDir,
+					Stack:      "io.paketo.stacks.tiny",
+					BuildpackInfo: packit.BuildpackInfo{
+						Name:        "Some Buildpack",
+						Version:     "some-version",
+						SBOMFormats: []string{"invalid-format"},
+					},
+					Layers: packit.Layers{Path: layersDir},
+				})
+				Expect(err).To(MatchError(`"invalid-format" is not a supported SBOM format`))
+			})
+		})
+
 		context("when BP_LIVE_RELOAD_ENABLED value is invalid", func() {
 			it.Before(func() {
 				os.Setenv("BP_LIVE_RELOAD_ENABLED", "not-a-bool")
@@ -399,62 +436,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Layers: packit.Layers{Path: layersDir},
 				})
 				Expect(err).To(MatchError(ContainSubstring("failed to parse BP_LIVE_RELOAD_ENABLED value not-a-bool")))
-			})
-		})
-		context("when stack is tiny and BP_LIVE_RELOAD_ENABLED=true in the build environment", func() {
-			it.Before(func() {
-				os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")
-			})
-
-			it.After(func() {
-				os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
-			})
-			it("fails the build and logs that watchexec is not supported on Tiny", func() {
-				_, err := build(packit.BuildContext{
-					WorkingDir: workingDir,
-					CNBPath:    cnbDir,
-					Stack:      "io.paketo.stacks.tiny",
-					BuildpackInfo: packit.BuildpackInfo{
-						Name:    "Some Buildpack",
-						Version: "some-version",
-					},
-					Layers: packit.Layers{Path: layersDir},
-				})
-				Expect(err).To(MatchError(ContainSubstring("cannot enable live reload on stack 'io.paketo.stacks.tiny': stack does not support watchexec")))
-			})
-		})
-		context("when an SBOM cannot be generated", func() {
-			it.Before(func() {
-				sbomGenerator.GenerateCall.Returns.Error = errors.New("sbom generation error")
-			})
-			it("fails the build and returns the error", func() {
-				_, err := build(packit.BuildContext{
-					WorkingDir: workingDir,
-					CNBPath:    cnbDir,
-					Stack:      "io.paketo.stacks.tiny",
-					BuildpackInfo: packit.BuildpackInfo{
-						Name:    "Some Buildpack",
-						Version: "some-version",
-					},
-					Layers: packit.Layers{Path: layersDir},
-				})
-				Expect(err).To(MatchError("sbom generation error"))
-			})
-		})
-		context("when a requested SBOM format is invalid", func() {
-			it("fails the build and returns the error", func() {
-				_, err := build(packit.BuildContext{
-					WorkingDir: workingDir,
-					CNBPath:    cnbDir,
-					Stack:      "io.paketo.stacks.tiny",
-					BuildpackInfo: packit.BuildpackInfo{
-						Name:        "Some Buildpack",
-						Version:     "some-version",
-						SBOMFormats: []string{"invalid-format"},
-					},
-					Layers: packit.Layers{Path: layersDir},
-				})
-				Expect(err).To(MatchError(`"invalid-format" is not a supported SBOM format`))
 			})
 		})
 	})
