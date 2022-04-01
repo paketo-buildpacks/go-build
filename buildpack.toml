@@ -19,3 +19,6 @@ api = "0.7"
 
 [[stacks]]
   id = "io.paketo.stacks.tiny"
+
+[[stacks]]
+  id = "*"
