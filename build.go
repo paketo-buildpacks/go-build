@@ -7,6 +7,7 @@ import (
 
 	"github.com/paketo-buildpacks/packit/v2"
 	"github.com/paketo-buildpacks/packit/v2/chronos"
+	"github.com/paketo-buildpacks/packit/v2/reload"
 	"github.com/paketo-buildpacks/packit/v2/sbom"
 	"github.com/paketo-buildpacks/packit/v2/scribe"
 )
@@ -111,7 +112,7 @@ func Build(
 			return packit.BuildResult{}, err
 		}
 
-		shouldReload, err := checkLiveReloadEnabled()
+		_, shouldReload, err := reload.AddWatchexec()
 		if err != nil {
 			return packit.BuildResult{}, err
 		}

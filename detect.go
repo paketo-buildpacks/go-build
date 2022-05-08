@@ -1,11 +1,8 @@
 package gobuild
 
 import (
-	"fmt"
-	"os"
-	"strconv"
-
 	"github.com/paketo-buildpacks/packit/v2"
+	"github.com/paketo-buildpacks/packit/v2/reload"
 )
 
 //go:generate faux --interface ConfigurationParser --output fakes/configuration_parser.go
@@ -28,18 +25,10 @@ func Detect(parser ConfigurationParser) packit.DetectFunc {
 			},
 		}
 
-		shouldEnableReload, err := checkLiveReloadEnabled()
-		if err != nil {
+		if watchExecReq, shouldEnableReload, err := reload.AddWatchexec(); err != nil {
 			return packit.DetectResult{}, err
-		}
-
-		if shouldEnableReload {
-			requirements = append(requirements, packit.BuildPlanRequirement{
-				Name: "watchexec",
-				Metadata: map[string]interface{}{
-					"launch": true,
-				},
-			})
+		} else if shouldEnableReload {
+			requirements = append(requirements, watchExecReq)
 		}
 
 		return packit.DetectResult{
@@ -48,15 +37,4 @@ func Detect(parser ConfigurationParser) packit.DetectFunc {
 			},
 		}, nil
 	}
-}
-
-func checkLiveReloadEnabled() (bool, error) {
-	if reload, ok := os.LookupEnv("BP_LIVE_RELOAD_ENABLED"); ok {
-		shouldEnableReload, err := strconv.ParseBool(reload)
-		if err != nil {
-			return false, fmt.Errorf("failed to parse BP_LIVE_RELOAD_ENABLED value %s: %w", reload, err)
-		}
-		return shouldEnableReload, nil
-	}
-	return false, nil
 }

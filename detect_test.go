@@ -8,6 +8,7 @@ import (
 	gobuild "github.com/paketo-buildpacks/go-build"
 	"github.com/paketo-buildpacks/go-build/fakes"
 	"github.com/paketo-buildpacks/packit/v2"
+	"github.com/paketo-buildpacks/packit/v2/reload"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
@@ -68,11 +69,11 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 
 	context("BP_LIVE_RELOAD_ENABLED=true in build environment", func() {
 		it.Before(func() {
-			Expect(os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")).To(Succeed())
+			Expect(os.Setenv(reload.LiveReloadEnabledEnvVar, "true")).To(Succeed())
 		})
 
 		it.After(func() {
-			Expect(os.Unsetenv("BP_LIVE_RELOAD_ENABLED")).To(Succeed())
+			Expect(os.Unsetenv(reload.LiveReloadEnabledEnvVar)).To(Succeed())
 		})
 
 		it("requires watchexec at launch time", func() {
@@ -83,12 +84,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result.Plan.Requires).To(ContainElement(packit.BuildPlanRequirement{
-				Name: "watchexec",
-				Metadata: map[string]interface{}{
-					"launch": true,
-				},
-			}))
+			Expect(result.Plan.Requires).To(ContainElement(reload.WatchExecRequirement))
 		})
 	})
 
@@ -106,13 +102,13 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 			})
 		})
 
-		context("parsing value of $BP_LIVE_RELOAD_ENABLED fails", func() {
+		context("parsing value of BP_LIVE_RELOAD_ENABLED fails", func() {
 			it.Before(func() {
-				Expect(os.Setenv("BP_LIVE_RELOAD_ENABLED", "not-a-bool")).To(Succeed())
+				Expect(os.Setenv(reload.LiveReloadEnabledEnvVar, "not-a-bool")).To(Succeed())
 			})
 
 			it.After(func() {
-				Expect(os.Unsetenv("BP_LIVE_RELOAD_ENABLED")).To(Succeed())
+				Expect(os.Unsetenv(reload.LiveReloadEnabledEnvVar)).To(Succeed())
 			})
 
 			it("returns an error", func() {
