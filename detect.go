@@ -33,10 +33,6 @@ func Detect(parser ConfigurationParser) packit.DetectFunc {
 			return packit.DetectResult{}, err
 		}
 
-		if shouldEnableReload && context.Stack == TinyStackName {
-			return packit.DetectResult{}, fmt.Errorf("cannot enable live reload on stack '%s': stack does not support watchexec", context.Stack)
-		}
-
 		if shouldEnableReload {
 			requirements = append(requirements, packit.BuildPlanRequirement{
 				Name: "watchexec",

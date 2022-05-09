@@ -267,6 +267,7 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 					settings.Buildpacks.GoDist.Online,
 					settings.Buildpacks.GoBuild.Online,
 				).
+				WithBuilder("paketobuildpacks/builder:tiny").
 				WithEnv(map[string]string{
 					"BP_LIVE_RELOAD_ENABLED": "true",
 				}).
