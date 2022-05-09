@@ -68,11 +68,11 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 
 	context("BP_LIVE_RELOAD_ENABLED=true in build environment", func() {
 		it.Before(func() {
-			os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")
+			Expect(os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")).To(Succeed())
 		})
 
 		it.After(func() {
-			os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
+			Expect(os.Unsetenv("BP_LIVE_RELOAD_ENABLED")).To(Succeed())
 		})
 
 		it("requires watchexec at launch time", func() {
@@ -105,13 +105,14 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 				Expect(err).To(MatchError(ContainSubstring("failed to parse configuration")))
 			})
 		})
+
 		context("parsing value of $BP_LIVE_RELOAD_ENABLED fails", func() {
 			it.Before(func() {
-				os.Setenv("BP_LIVE_RELOAD_ENABLED", "not-a-bool")
+				Expect(os.Setenv("BP_LIVE_RELOAD_ENABLED", "not-a-bool")).To(Succeed())
 			})
 
 			it.After(func() {
-				os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
+				Expect(os.Unsetenv("BP_LIVE_RELOAD_ENABLED")).To(Succeed())
 			})
 
 			it("returns an error", func() {
@@ -122,26 +123,6 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 					},
 				})
 				Expect(err).To(MatchError(ContainSubstring("failed to parse BP_LIVE_RELOAD_ENABLED value not-a-bool")))
-			})
-		})
-		context("BP_LIVE_RELOAD_ENABLED=true and the stack is tiny", func() {
-			it.Before(func() {
-				os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")
-			})
-
-			it.After(func() {
-				os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
-			})
-
-			it("returns an error", func() {
-				_, err := detect(packit.DetectContext{
-					WorkingDir: workingDir,
-					BuildpackInfo: packit.BuildpackInfo{
-						Version: "some-buildpack-version",
-					},
-					Stack: "io.paketo.stacks.tiny",
-				})
-				Expect(err).To(MatchError(ContainSubstring("cannot enable live reload on stack 'io.paketo.stacks.tiny': stack does not support watchexec")))
 			})
 		})
 	})
