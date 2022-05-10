@@ -252,7 +252,7 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			Expect(os.RemoveAll(source)).To(Succeed())
 		})
 
-		it("builds successfully and makes reloadable and non-reloadable process types available", func() {
+		it("builds successfully and makes reloadable and non-reloadable process types available with the tiny builder", func() {
 			var (
 				err  error
 				logs fmt.Stringer
@@ -261,7 +261,6 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			image, logs, err = pack.Build.
-				WithPullPolicy("never").
 				WithBuildpacks(
 					settings.Buildpacks.Watchexec.Online,
 					settings.Buildpacks.GoDist.Online,
