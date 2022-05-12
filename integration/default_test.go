@@ -252,7 +252,7 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			Expect(os.RemoveAll(source)).To(Succeed())
 		})
 
-		it("builds successfully and makes reloadable and non-reloadable process types available with the tiny builder", func() {
+		it("builds successfully and makes reloadable and non-reloadable process types available", func() {
 			var (
 				err  error
 				logs fmt.Stringer
@@ -261,12 +261,12 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			image, logs, err = pack.Build.
+				WithPullPolicy("never").
 				WithBuildpacks(
 					settings.Buildpacks.Watchexec.Online,
 					settings.Buildpacks.GoDist.Online,
 					settings.Buildpacks.GoBuild.Online,
 				).
-				WithBuilder("paketobuildpacks/builder:tiny").
 				WithEnv(map[string]string{
 					"BP_LIVE_RELOAD_ENABLED": "true",
 				}).
