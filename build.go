@@ -133,6 +133,7 @@ func Build(
 						"--restart",
 						"--watch", context.WorkingDir,
 						"--watch", filepath.Dir(binary),
+						"--shell", "none",
 						"--",
 						binary},
 					Direct:  true,
