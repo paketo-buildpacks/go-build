@@ -37,8 +37,10 @@ var settings struct {
 		Name string
 	}
 	Config struct {
-		GoDist    string `json:"go-dist"`
-		Watchexec string `json:"watchexec"`
+		GoDist       string `json:"go-dist"`
+		Watchexec    string `json:"watchexec"`
+		TinyBuilder  string `json:"tiny-builder"`
+		TinyRunImage string `json:"tiny-run-image"`
 	}
 }
 
@@ -93,6 +95,16 @@ func TestIntegration(t *testing.T) {
 	settings.Buildpacks.Watchexec.Offline, err = libpakBuildpackStore.Get.
 		WithOfflineDependencies().
 		Execute(settings.Config.Watchexec)
+	Expect(err).ToNot(HaveOccurred())
+
+	docker := occam.NewDocker()
+
+	t.Logf("Pulling image %s", settings.Config.TinyBuilder)
+	err = docker.Pull.Execute(settings.Config.TinyBuilder)
+	Expect(err).ToNot(HaveOccurred())
+
+	t.Logf("Pulling image %s", settings.Config.TinyRunImage)
+	err = docker.Pull.Execute(settings.Config.TinyRunImage)
 	Expect(err).ToNot(HaveOccurred())
 
 	SetDefaultEventuallyTimeout(10 * time.Second)

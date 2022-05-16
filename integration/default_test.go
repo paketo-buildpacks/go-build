@@ -261,6 +261,7 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			image, logs, err = pack.Build.
+				WithPullPolicy("never").
 				WithBuildpacks(
 					settings.Buildpacks.Watchexec.Online,
 					settings.Buildpacks.GoDist.Online,
@@ -285,7 +286,7 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			Expect(logs).To(ContainLines(
 				"  Assigning launch processes:",
 				fmt.Sprintf("    workspace:                  /layers/%s/targets/bin/workspace", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
-				fmt.Sprintf("    reload-workspace (default): watchexec --restart --watch /workspace --watch /layers/%[1]s/targets/bin -- /layers/%[1]s/targets/bin/workspace", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+				fmt.Sprintf("    reload-workspace (default): watchexec --restart --watch /workspace --watch /layers/%[1]s/targets/bin --shell none -- /layers/%[1]s/targets/bin/workspace", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 			))
 
 			noReloadContainer, err = docker.Container.Run.
