@@ -112,7 +112,7 @@ func Build(
 			return packit.BuildResult{}, err
 		}
 
-		_, shouldReload, err := reload.AddWatchexec()
+		shouldReload, err := reload.ShouldRequireWatchexec()
 		if err != nil {
 			return packit.BuildResult{}, err
 		}

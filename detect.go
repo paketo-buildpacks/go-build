@@ -25,10 +25,10 @@ func Detect(parser ConfigurationParser) packit.DetectFunc {
 			},
 		}
 
-		if watchExecReq, shouldEnableReload, err := reload.AddWatchexec(); err != nil {
+		if shouldEnableReload, err := reload.ShouldRequireWatchexec(); err != nil {
 			return packit.DetectResult{}, err
 		} else if shouldEnableReload {
-			requirements = append(requirements, watchExecReq)
+			requirements = append(requirements, reload.WatchExecRequirement)
 		}
 
 		return packit.DetectResult{
