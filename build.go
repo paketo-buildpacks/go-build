@@ -126,7 +126,7 @@ func Build(
 			}
 
 			if shouldReload {
-				nonReloadable, reloadable := reload.MagicProcessThing(originalProcess, reload.WatchExecProcessSpec{
+				nonReloadable, reloadable := reload.TransformReloadableProcesses(originalProcess, reload.WatchExecProcessSpec{
 					WatchDirs: []string{
 						context.WorkingDir,
 						filepath.Dir(binary),
