@@ -1,7 +1,6 @@
 package gobuild
 
 import (
-	"fmt"
 	"path/filepath"
 	"time"
 
@@ -119,27 +118,24 @@ func Build(
 
 		var processes []packit.Process
 		for index, binary := range binaries {
-			processes = append(processes, packit.Process{
+			originalProcess := packit.Process{
 				Type:    filepath.Base(binary),
 				Command: binary,
 				Direct:  true,
-				Default: index == 0 && !shouldReload,
-			})
+				Default: index == 0,
+			}
 
 			if shouldReload {
-				processes = append(processes, packit.Process{
-					Type:    fmt.Sprintf("reload-%s", filepath.Base(binary)),
-					Command: "watchexec",
-					Args: []string{
-						"--restart",
-						"--watch", context.WorkingDir,
-						"--watch", filepath.Dir(binary),
-						"--shell", "none",
-						"--",
-						binary},
-					Direct:  true,
-					Default: index == 0,
+				nonReloadable, reloadable := reload.MagicProcessThing(originalProcess, reload.WatchExecProcessSpec{
+					WatchDirs: []string{
+						context.WorkingDir,
+						filepath.Dir(binary),
+					},
+					Shell: "none",
 				})
+				processes = append(processes, nonReloadable, reloadable)
+			} else {
+				processes = append(processes, originalProcess)
 			}
 		}
 
