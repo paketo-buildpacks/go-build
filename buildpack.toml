@@ -1,7 +1,7 @@
 api = "0.8"
 
 [buildpack]
-  description = "A buildpack for compiling Go application and writing start commands"
+  description = "A buildpack for compiling Go applications and writing start commands"
   homepage = "https://github.com/paketo-buildpacks/go-build"
   id = "paketo-buildpacks/go-build"
   name = "Paketo Go Build Buildpack"
