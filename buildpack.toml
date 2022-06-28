@@ -1,9 +1,11 @@
-api = "0.7"
+api = "0.8"
 
 [buildpack]
+  description = "A buildpack for compiling Go applications and writing start commands"
   homepage = "https://github.com/paketo-buildpacks/go-build"
   id = "paketo-buildpacks/go-build"
   name = "Paketo Go Build Buildpack"
+  keywords = ["go", "build", "compilation", "binary"]
   sbom-formats = ["application/vnd.cyclonedx+json", "application/spdx+json", "application/vnd.syft+json"]
 
   [[buildpack.licenses]]
@@ -13,12 +15,6 @@ api = "0.7"
 [metadata]
   include-files = ["bin/build", "bin/detect", "bin/run", "buildpack.toml"]
   pre-package = "./scripts/build.sh"
-
-[[stacks]]
-  id = "io.buildpacks.stacks.bionic"
-
-[[stacks]]
-  id = "io.paketo.stacks.tiny"
 
 [[stacks]]
   id = "*"
