@@ -94,6 +94,18 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 				fmt.Sprintf("    second:          /layers/%s/targets/bin/second", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 			))
 
+			// The second launch process can be accessed using its name entrypoint
+			container, err = docker.Container.Run.
+				WithEnv(map[string]string{"PORT": "8080"}).
+				WithPublish("8080").
+				WithPublishAll().
+				WithEntrypoint("second").
+				Execute(image.ID)
+			Expect(err).NotTo(HaveOccurred())
+			containerIDs[container.ID] = struct{}{}
+
+			Eventually(container).Should(Serve(ContainSubstring("second: go1.17")).OnPort(8080))
+
 			// check that all required SBOM files are present
 			Expect(filepath.Join(sbomDir, "sbom", "launch", strings.ReplaceAll(settings.Buildpack.ID, "/", "_"), "targets", "sbom.cdx.json")).To(BeARegularFile())
 			Expect(filepath.Join(sbomDir, "sbom", "launch", strings.ReplaceAll(settings.Buildpack.ID, "/", "_"), "targets", "sbom.spdx.json")).To(BeARegularFile())
@@ -106,31 +118,6 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 			Expect(string(contents)).To(ContainSubstring(`"name": "github.com/sahilm/fuzzy"`))
 			// and does not contain an entry for the binary that was not compiled
 			Expect(string(contents)).NotTo(ContainSubstring(`"name": "github.com/Masterminds/semver"`))
-		})
-
-		it("the other binary can be accessed using its name as an entrypoint", func() {
-			var err error
-			var logs fmt.Stringer
-			image, logs, err = pack.Build.
-				WithPullPolicy("never").
-				WithEnv(map[string]string{"BP_GO_TARGETS": "third:./second"}).
-				WithBuildpacks(
-					settings.Buildpacks.GoDist.Online,
-					settings.Buildpacks.GoBuild.Online,
-				).
-				Execute(name, source)
-			Expect(err).ToNot(HaveOccurred(), logs.String)
-
-			container, err = docker.Container.Run.
-				WithEnv(map[string]string{"PORT": "8080"}).
-				WithPublish("8080").
-				WithPublishAll().
-				WithEntrypoint("second").
-				Execute(image.ID)
-			Expect(err).NotTo(HaveOccurred())
-			containerIDs[container.ID] = struct{}{}
-
-			Eventually(container).Should(Serve(ContainSubstring("second: go1.17")).OnPort(8080))
 		})
 	})
 }
