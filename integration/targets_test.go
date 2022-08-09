@@ -102,10 +102,10 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 			// check an SBOM file to make sure it contains entries for built binaries
 			contents, err := os.ReadFile(filepath.Join(sbomDir, "sbom", "launch", strings.ReplaceAll(settings.Buildpack.ID, "/", "_"), "targets", "sbom.cdx.json"))
 			Expect(err).NotTo(HaveOccurred())
-			Expect(string(contents)).To(ContainSubstring(`"name":"github.com/gorilla/mux"`))
-			Expect(string(contents)).To(ContainSubstring(`"name":"github.com/sahilm/fuzzy"`))
+			Expect(string(contents)).To(ContainSubstring(`"name": "github.com/gorilla/mux"`))
+			Expect(string(contents)).To(ContainSubstring(`"name": "github.com/sahilm/fuzzy"`))
 			// and does not contain an entry for the binary that was not compiled
-			Expect(string(contents)).NotTo(ContainSubstring(`"name":"github.com/Masterminds/semver"`))
+			Expect(string(contents)).NotTo(ContainSubstring(`"name": "github.com/Masterminds/semver"`))
 		})
 
 		it("the other binary can be accessed using its name as an entrypoint", func() {
