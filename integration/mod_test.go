@@ -92,7 +92,7 @@ func testMod(t *testing.T, context spec.G, it spec.S) {
 			// check an SBOM file to make sure it contains the expected dependency
 			contents, err := os.ReadFile(filepath.Join(sbomDir, "sbom", "launch", strings.ReplaceAll(settings.Buildpack.ID, "/", "_"), "targets", "sbom.cdx.json"))
 			Expect(err).NotTo(HaveOccurred())
-			Expect(string(contents)).To(ContainSubstring(`"name":"github.com/gorilla/mux"`))
+			Expect(string(contents)).To(ContainSubstring(`"name": "github.com/gorilla/mux"`))
 		})
 
 		context("when there is a go.mod AND modules are vendored", func() {
@@ -129,7 +129,7 @@ func testMod(t *testing.T, context spec.G, it spec.S) {
 				// check an SBOM file to make sure it contains the expected dependency
 				contents, err := os.ReadFile(filepath.Join(sbomDir, "sbom", "launch", strings.ReplaceAll(settings.Buildpack.ID, "/", "_"), "targets", "sbom.cdx.json"))
 				Expect(err).NotTo(HaveOccurred())
-				Expect(string(contents)).To(ContainSubstring(`"name":"github.com/gorilla/mux"`))
+				Expect(string(contents)).To(ContainSubstring(`"name": "github.com/gorilla/mux"`))
 			})
 		})
 	})
