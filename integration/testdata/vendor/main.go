@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,6 +10,9 @@ import (
 
 	"github.com/gorilla/mux"
 )
+
+//go:embed .occam-key
+var s string
 
 func main() {
 	router := mux.NewRouter()

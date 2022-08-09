@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"log"
 	"net/http"
@@ -8,6 +9,10 @@ import (
 	"path/filepath"
 	"runtime"
 )
+
+// Embeds the .occam-key to make the images unique after the source is removed.
+//go:embed .occam-key
+var s string
 
 func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
