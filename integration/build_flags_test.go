@@ -75,7 +75,7 @@ func testBuildFlags(t *testing.T, context spec.G, it spec.S) {
 			Eventually(container).Should(
 				Serve(
 					SatisfyAll(
-						ContainSubstring("go1.17"),
+						ContainSubstring("go1.18"),
 						ContainSubstring(`variable value: "some-value"`),
 						ContainSubstring("/workspace contents: []"),
 					),
@@ -123,7 +123,7 @@ func testBuildFlags(t *testing.T, context spec.G, it spec.S) {
 			Eventually(container).Should(
 				Serve(
 					SatisfyAll(
-						ContainSubstring("go1.17"),
+						ContainSubstring("go1.18"),
 						ContainSubstring(`variable value: "env-value"`),
 						ContainSubstring("/workspace contents: []"),
 					),
