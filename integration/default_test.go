@@ -85,7 +85,7 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			Eventually(container).Should(
 				Serve(
 					SatisfyAll(
-						ContainSubstring("go1.17"),
+						ContainSubstring("go1.18"),
 						ContainSubstring("/workspace contents: []"),
 					),
 				).OnPort(8080),
@@ -169,7 +169,7 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 				Execute(image.ID)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(container).Should(Serve(ContainSubstring("go1.17")).OnPort(8080))
+			Eventually(container).Should(Serve(ContainSubstring("go1.18")).OnPort(8080))
 		})
 	})
 
@@ -220,7 +220,7 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			Eventually(container).Should(
 				Serve(
 					SatisfyAll(
-						ContainSubstring("go1.17"),
+						ContainSubstring("go1.18"),
 						ContainSubstring("/workspace contents: []"),
 					),
 				).OnPort(8080),
@@ -281,7 +281,7 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 				Execute(image.ID)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(container).Should(Serve(ContainSubstring("go1.17")).OnPort(8080))
+			Eventually(container).Should(Serve(ContainSubstring("go1.18")).OnPort(8080))
 
 			Expect(logs).To(ContainLines(
 				"  Assigning launch processes:",
@@ -297,7 +297,7 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 				Execute(image.ID)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(noReloadContainer).Should(Serve(ContainSubstring("go1.17")).OnPort(8080))
+			Eventually(noReloadContainer).Should(Serve(ContainSubstring("go1.18")).OnPort(8080))
 		})
 	})
 }
