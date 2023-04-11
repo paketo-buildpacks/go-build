@@ -76,20 +76,17 @@ func (p GoBuildProcess) Execute(config GoBuildConfiguration) ([]string, error) {
 	}
 	p.logs.Subprocess("Running '%s'", strings.Join(printedArgs, " "))
 
-	buffer := bytes.NewBuffer(nil)
 	duration, err := p.clock.Measure(func() error {
 		return p.executable.Execute(pexec.Execution{
 			Args:   args,
 			Dir:    config.Workspace,
 			Env:    env,
-			Stdout: buffer,
-			Stderr: buffer,
+			Stdout: p.logs.ActionWriter,
+			Stderr: p.logs.ActionWriter,
 		})
 	})
 	if err != nil {
 		p.logs.Action("Failed after %s", duration.Round(time.Millisecond))
-		p.logs.Detail(buffer.String())
-
 		return nil, fmt.Errorf("failed to execute 'go build': %w", err)
 	}
 
@@ -98,7 +95,7 @@ func (p GoBuildProcess) Execute(config GoBuildConfiguration) ([]string, error) {
 
 	var paths []string
 	for _, target := range config.Targets {
-		buffer = bytes.NewBuffer(nil)
+		buffer := bytes.NewBuffer(nil)
 		err := p.executable.Execute(pexec.Execution{
 			Args:   []string{"list", "--json", target},
 			Dir:    config.Workspace,
@@ -108,7 +105,6 @@ func (p GoBuildProcess) Execute(config GoBuildConfiguration) ([]string, error) {
 		})
 		if err != nil {
 			p.logs.Detail(buffer.String())
-
 			return nil, fmt.Errorf("failed to execute 'go list': %w", err)
 		}
 
