@@ -247,9 +247,9 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 				Expect(err).To(MatchError("failed to execute 'go build': command failed"))
 
 				Expect(logs).To(ContainLines(
+					"      build error stdout",
+					"      build error stderr",
 					"      Failed after 1s",
-					"        build error stdout",
-					"        build error stderr",
 				))
 			})
 		})
@@ -278,6 +278,8 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 				Expect(err).To(MatchError("failed to execute 'go list': command failed"))
 
 				Expect(logs).To(ContainLines(
+					"      Completed in 1s",
+					"",
 					"        build error stdout",
 					"        build error stderr",
 				))
