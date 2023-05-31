@@ -3,7 +3,7 @@ module github.com/paketo-buildpacks/go-build
 go 1.18
 
 require (
-	github.com/BurntSushi/toml v1.2.1
+	github.com/BurntSushi/toml v1.3.0
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/onsi/gomega v1.27.7
 	github.com/paketo-buildpacks/occam v0.16.0
