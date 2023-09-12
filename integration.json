@@ -1,6 +1,6 @@
 {
   "go-dist": "github.com/paketo-buildpacks/go-dist",
   "watchexec": "github.com/paketo-buildpacks/watchexec",
-  "tiny-builder": "paketobuildpacks/builder:tiny",
-  "tiny-run-image": "index.docker.io/paketobuildpacks/run:tiny-cnb"
+  "tiny-builder": "paketobuildpacks/builder-jammy-buildpackless-tiny",
+  "tiny-run-image": "index.docker.io/paketobuildpacks/run-jammy-tiny"
 }
