@@ -23,12 +23,13 @@ type Executable interface {
 }
 
 type GoBuildConfiguration struct {
-	Workspace string
-	Output    string
-	GoPath    string
-	GoCache   string
-	Targets   []string
-	Flags     []string
+	Workspace  string
+	Output     string
+	GoPath     string
+	GoCache    string
+	Targets    []string
+	Flags      []string
+	DisableCGO bool
 }
 
 type GoBuildProcess struct {
@@ -69,6 +70,10 @@ func (p GoBuildProcess) Execute(config GoBuildConfiguration) ([]string, error) {
 		env = append(env, fmt.Sprintf("GOPATH=%s", config.GoPath))
 	}
 	env = append(env, "GO111MODULE=auto")
+
+	if config.DisableCGO {
+		env = append(env, "CGO_ENABLED=0")
+	}
 
 	printedArgs := []string{"go"}
 	for _, arg := range args {

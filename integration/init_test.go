@@ -17,6 +17,8 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+var builder occam.Builder
+
 var settings struct {
 	Buildpacks struct {
 		GoDist struct {
@@ -46,7 +48,9 @@ var settings struct {
 
 func TestIntegration(t *testing.T) {
 	format.MaxLength = 0
+
 	Expect := NewWithT(t).Expect
+	pack := occam.NewPack()
 
 	file, err := os.Open("../integration.json")
 	Expect(err).NotTo(HaveOccurred())
@@ -107,11 +111,13 @@ func TestIntegration(t *testing.T) {
 	err = docker.Pull.Execute(settings.Config.TinyRunImage)
 	Expect(err).ToNot(HaveOccurred())
 
+	builder, err = pack.Builder.Inspect.Execute()
+	Expect(err).NotTo(HaveOccurred())
+
 	SetDefaultEventuallyTimeout(10 * time.Second)
 
 	suite := spec.New("Integration", spec.Report(report.Terminal{}), spec.Parallel())
 	suite("BuildFailure", testBuildFailure)
-	suite("BuildFlags", testBuildFlags)
 	suite("Default", testDefault)
 	suite("ImportPath", testImportPath)
 	suite("KeepFiles", testKeepFiles)
@@ -119,5 +125,8 @@ func TestIntegration(t *testing.T) {
 	suite("Rebuild", testRebuild)
 	suite("Targets", testTargets)
 	suite("Vendor", testVendor)
+	if builder.BuilderName != "paketobuildpacks/builder-jammy-buildpackless-static" {
+		suite("BuildFlags", testBuildFlags)
+	}
 	suite.Run(t)
 }

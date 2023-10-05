@@ -2,5 +2,11 @@
   "go-dist": "github.com/paketo-buildpacks/go-dist",
   "watchexec": "github.com/paketo-buildpacks/watchexec",
   "tiny-builder": "paketobuildpacks/builder-jammy-buildpackless-tiny",
-  "tiny-run-image": "index.docker.io/paketobuildpacks/run-jammy-tiny"
+  "tiny-run-image": "index.docker.io/paketobuildpacks/run-jammy-tiny",
+  "builders": [
+    "paketobuildpacks/builder-jammy-buildpackless-static",
+    "paketobuildpacks/builder-jammy-buildpackless-tiny",
+    "paketobuildpacks/builder-jammy-buildpackless-base",
+    "paketobuildpacks/builder-jammy-buildpackless-full"
+  ]
 }
