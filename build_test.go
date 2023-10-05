@@ -268,12 +268,12 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		})
 	})
 
-	context("when the stack is tiny", func() {
-		it("marks the launch process as direct", func() {
+	context("when the stack is static", func() {
+		it("sets CGO_ENABLED=0 and -buildmode=default", func() {
 			result, err := build(packit.BuildContext{
 				WorkingDir: workingDir,
 				CNBPath:    cnbDir,
-				Stack:      "io.paketo.stacks.tiny",
+				Stack:      "io.buildpacks.stacks.jammy.static",
 				BuildpackInfo: packit.BuildpackInfo{
 					Name:    "Some Buildpack",
 					Version: "some-version",
@@ -295,6 +295,52 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Direct:  true,
 				},
 			}))
+
+			receivedConfig := buildProcess.ExecuteCall.Receives.Config
+
+			Expect(receivedConfig.DisableCGO).To(BeTrue())
+			Expect(receivedConfig.Flags).To(Equal([]string{"some-flag", "other-flag", "-buildmode", "default"}))
+		})
+
+		context("there is a pre-existing -buildmode flag", func() {
+			it.Before(func() {
+				parser.ParseCall.Returns.BuildConfiguration = gobuild.BuildConfiguration{
+					Flags: []string{"-buildmode", "some-provided-buildmode"},
+				}
+			})
+
+			it("does not set CGO_ENABLED=0 or -buildmode=default", func() {
+				result, err := build(packit.BuildContext{
+					WorkingDir: workingDir,
+					CNBPath:    cnbDir,
+					Stack:      "io.buildpacks.stacks.jammy.static",
+					BuildpackInfo: packit.BuildpackInfo{
+						Name:    "Some Buildpack",
+						Version: "some-version",
+					},
+					Layers: packit.Layers{Path: layersDir},
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(result.Launch.Processes).To(Equal([]packit.Process{
+					{
+						Type:    "some-start-command",
+						Command: "path/some-start-command",
+						Direct:  true,
+						Default: true,
+					},
+					{
+						Type:    "another-start-command",
+						Command: "path/another-start-command",
+						Direct:  true,
+					},
+				}))
+
+				receivedConfig := buildProcess.ExecuteCall.Receives.Config
+
+				Expect(receivedConfig.DisableCGO).To(BeFalse())
+				Expect(receivedConfig.Flags).To(Equal([]string{"-buildmode", "some-provided-buildmode"}))
+			})
 		})
 	})
 

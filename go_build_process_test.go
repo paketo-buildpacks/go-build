@@ -133,6 +133,24 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 		Expect(logs.String()).To(ContainSubstring("      Completed in 1s"))
 	})
 
+	it("propagates the disable cgo flag", func() {
+		binaries, err := buildProcess.Execute(gobuild.GoBuildConfiguration{
+			Workspace:  workspacePath,
+			Output:     filepath.Join(layerPath, "bin"),
+			GoPath:     goPath,
+			GoCache:    goCache,
+			Targets:    []string{"./some-target"},
+			DisableCGO: true,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(binaries).To(Equal([]string{
+			filepath.Join(layerPath, "bin", "some-target"),
+		}))
+
+		Expect(executable.ExecuteCall.Receives.Execution.Env).To(ContainElement("CGO_ENABLED=0"))
+	})
+
 	context("when there are build flags", func() {
 		it.Before(func() {
 			Expect(os.WriteFile(filepath.Join(workspacePath, "go.mod"), nil, 0644)).To(Succeed())

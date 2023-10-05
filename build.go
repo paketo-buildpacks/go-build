@@ -11,6 +11,11 @@ import (
 	"github.com/paketo-buildpacks/packit/v2/scribe"
 )
 
+const (
+	// JammyStaticStackID is the ID for the Cloud Native Buildpacks jammy static stack.
+	JammyStaticStackID = "io.buildpacks.stacks.jammy.static"
+)
+
 //go:generate faux --interface BuildProcess --output fakes/build_process.go
 type BuildProcess interface {
 	Execute(config GoBuildConfiguration) (binaries []string, err error)
@@ -70,14 +75,21 @@ func Build(
 			return packit.BuildResult{}, err
 		}
 
-		binaries, err := buildProcess.Execute(GoBuildConfiguration{
+		config := GoBuildConfiguration{
 			Workspace: path,
 			Output:    filepath.Join(targetsLayer.Path, "bin"),
 			GoPath:    goPath,
 			GoCache:   goCacheLayer.Path,
 			Flags:     configuration.Flags,
 			Targets:   configuration.Targets,
-		})
+		}
+
+		if isStaticStack(context.Stack) && !containsFlag(config.Flags, "-buildmode") {
+			config.DisableCGO = true
+			config.Flags = append(config.Flags, "-buildmode", "default")
+		}
+
+		binaries, err := buildProcess.Execute(config)
 		if err != nil {
 			return packit.BuildResult{}, err
 		}
@@ -151,4 +163,8 @@ func Build(
 			},
 		}, nil
 	}
+}
+
+func isStaticStack(stack string) bool {
+	return stack == JammyStaticStackID
 }
