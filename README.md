@@ -61,6 +61,16 @@ imports its own sub-packages.
 BP_GO_BUILD_IMPORT_PATH= example.com/some-app
 ```
 
+### `BP_GO_WORK_USE`
+The `BP_GO_WORK_USE` variable allows you to initialise a workspace file and add
+modules to it. This is helpful for building submodules which use relative
+replace directives and `go.work` is not checked in. Usually, this is set
+together with `BP_GO_TARGETS`.
+
+```shell
+BP_GO_WORK_USE=./cmd/controller:./cmd/webhook
+```
+
 ### `BP_KEEP_FILES`
 The `BP_KEEP_FILES` variable allows to you to specity a path list of files
 (including file globs) that you would like to appear in the workspace of the
