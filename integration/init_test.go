@@ -113,6 +113,7 @@ func TestIntegration(t *testing.T) {
 	suite("Rebuild", testRebuild)
 	suite("Targets", testTargets)
 	suite("Vendor", testVendor)
+	suite("WorkUse", testWorkUse)
 	if builder.BuilderName != "paketobuildpacks/builder-jammy-buildpackless-static" {
 		suite("BuildFlags", testBuildFlags)
 	}

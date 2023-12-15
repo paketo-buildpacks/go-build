@@ -23,13 +23,14 @@ type Executable interface {
 }
 
 type GoBuildConfiguration struct {
-	Workspace  string
-	Output     string
-	GoPath     string
-	GoCache    string
-	Targets    []string
-	Flags      []string
-	DisableCGO bool
+	Workspace           string
+	Output              string
+	GoPath              string
+	GoCache             string
+	Targets             []string
+	Flags               []string
+	DisableCGO          bool
+	WorkspaceUseModules []string
 }
 
 type GoBuildProcess struct {
@@ -73,6 +74,44 @@ func (p GoBuildProcess) Execute(config GoBuildConfiguration) ([]string, error) {
 
 	if config.DisableCGO {
 		env = append(env, "CGO_ENABLED=0")
+	}
+
+	if len(config.WorkspaceUseModules) > 0 {
+		// go work init
+		workInitArgs := []string{"work", "init"}
+		p.logs.Subprocess("Running '%s'", strings.Join(append([]string{"go"}, workInitArgs...), " "))
+
+		duration, err := p.clock.Measure(func() error {
+			return p.executable.Execute(pexec.Execution{
+				Args:   workInitArgs,
+				Dir:    config.Workspace,
+				Env:    env,
+				Stdout: p.logs.ActionWriter,
+				Stderr: p.logs.ActionWriter,
+			})
+		})
+		if err != nil {
+			p.logs.Action("Failed after %s", duration.Round(time.Millisecond))
+			return nil, fmt.Errorf("failed to execute '%s': %w", workInitArgs, err)
+		}
+
+		// go work use <modules...>
+		workUseArgs := append([]string{"work", "use"}, config.WorkspaceUseModules...)
+		p.logs.Subprocess("Running '%s'", strings.Join(append([]string{"go"}, workUseArgs...), " "))
+
+		duration, err = p.clock.Measure(func() error {
+			return p.executable.Execute(pexec.Execution{
+				Args:   workUseArgs,
+				Dir:    config.Workspace,
+				Env:    env,
+				Stdout: p.logs.ActionWriter,
+				Stderr: p.logs.ActionWriter,
+			})
+		})
+		if err != nil {
+			p.logs.Action("Failed after %s", duration.Round(time.Millisecond))
+			return nil, fmt.Errorf("failed to execute '%s': %w", workUseArgs, err)
+		}
 	}
 
 	printedArgs := []string{"go"}

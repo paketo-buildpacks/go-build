@@ -76,12 +76,13 @@ func Build(
 		}
 
 		config := GoBuildConfiguration{
-			Workspace: path,
-			Output:    filepath.Join(targetsLayer.Path, "bin"),
-			GoPath:    goPath,
-			GoCache:   goCacheLayer.Path,
-			Flags:     configuration.Flags,
-			Targets:   configuration.Targets,
+			Workspace:           path,
+			Output:              filepath.Join(targetsLayer.Path, "bin"),
+			GoPath:              goPath,
+			GoCache:             goCacheLayer.Path,
+			Flags:               configuration.Flags,
+			Targets:             configuration.Targets,
+			WorkspaceUseModules: configuration.WorkspaceUseModules,
 		}
 
 		if isStaticStack(context.Stack) && !containsFlag(config.Flags, "-buildmode") {

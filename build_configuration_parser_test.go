@@ -195,6 +195,27 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 		})
 	})
 
+	context("when BP_GO_WORK_USE is set", func() {
+		it.Before(func() {
+			os.Setenv("BP_GO_WORK_USE", "./some/module1:./some/module2")
+		})
+
+		it.After(func() {
+			os.Unsetenv("BP_GO_WORK_USE")
+		})
+
+		it("uses the values in the env var", func() {
+			configuration, err := parser.Parse("1.2.3", workingDir)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(configuration).To(Equal(gobuild.BuildConfiguration{
+				Targets:             []string{"."},
+				WorkspaceUseModules: []string{"./some/module1", "./some/module2"},
+			}))
+
+			Expect(targetManager.GenerateDefaultsCall.Receives.WorkingDir).To(Equal(workingDir))
+		})
+	})
+
 	context("failure cases", func() {
 		context("when the working directory contains a buildpack.yml", func() {
 			it.Before(func() {

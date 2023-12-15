@@ -199,6 +199,66 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 		})
 	})
 
+	context("when workspaces should be used", func() {
+		it.Before(func() {
+			Expect(os.WriteFile(filepath.Join(workspacePath, "go.mod"), nil, 0644)).To(Succeed())
+			Expect(os.Mkdir(filepath.Join(workspacePath, "vendor"), os.ModePerm)).To(Succeed())
+		})
+
+		it("inits and uses the workspaces before executing the go build process", func() {
+			binaries, err := buildProcess.Execute(gobuild.GoBuildConfiguration{
+				Workspace:           workspacePath,
+				Output:              filepath.Join(layerPath, "bin"),
+				GoCache:             goCache,
+				Targets:             []string{"."},
+				WorkspaceUseModules: []string{"./some/module1", "./some/module2"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(binaries).To(Equal([]string{
+				filepath.Join(layerPath, "bin", "some-dir"),
+			}))
+
+			Expect(filepath.Join(layerPath, "bin")).To(BeADirectory())
+
+			Expect(executions[0].Args).To(Equal([]string{
+				"work",
+				"init",
+			}))
+
+			Expect(executions[1].Args).To(Equal([]string{
+				"work",
+				"use",
+				"./some/module1",
+				"./some/module2",
+			}))
+
+			Expect(executions[2].Args).To(Equal([]string{
+				"build",
+				"-o", filepath.Join(layerPath, "bin"),
+				"-buildmode", "pie",
+				"-trimpath",
+				".",
+			}))
+
+			Expect(executions[3].Args).To(Equal([]string{
+				"list",
+				"--json",
+				".",
+			}))
+
+			Expect(executable.ExecuteCall.Receives.Execution.Dir).To(Equal(workspacePath))
+			Expect(executable.ExecuteCall.Receives.Execution.Env).To(ContainElement(fmt.Sprintf("GOCACHE=%s", goCache)))
+
+			Expect(logs).To(ContainLines(
+				"  Executing build process",
+				"    Running 'go work init'",
+				"    Running 'go work use ./some/module1 ./some/module2'",
+				fmt.Sprintf(`    Running 'go build -o %s -buildmode pie -trimpath .'`, filepath.Join(layerPath, "bin")),
+				"      Completed in 0s",
+			))
+		})
+	})
+
 	context("when the GOPATH is empty", func() {
 		it.Before(func() {
 			Expect(os.WriteFile(filepath.Join(workspacePath, "go.mod"), nil, 0644)).To(Succeed())
@@ -241,6 +301,72 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 				})
 				Expect(err).To(MatchError(ContainSubstring("failed to create targets output directory:")))
 				Expect(err).To(MatchError(ContainSubstring("permission denied")))
+			})
+		})
+
+		context("when workspaces should be used", func() {
+			context("when the executable fails go work init", func() {
+				it.Before(func() {
+					executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
+						if execution.Args[0] == "work" && execution.Args[1] == "init" {
+							fmt.Fprintln(execution.Stdout, "work init error stdout")
+							fmt.Fprintln(execution.Stderr, "work init error stderr")
+							return errors.New("command failed")
+						}
+
+						return nil
+					}
+				})
+
+				it("returns an error", func() {
+					_, err := buildProcess.Execute(gobuild.GoBuildConfiguration{
+						Workspace:           workspacePath,
+						Output:              filepath.Join(layerPath, "bin"),
+						GoPath:              goPath,
+						GoCache:             goCache,
+						Targets:             []string{"."},
+						WorkspaceUseModules: []string{"./some/module1", "./some/module2"},
+					})
+					Expect(err).To(MatchError("failed to execute '[work init]': command failed"))
+
+					Expect(logs).To(ContainLines(
+						"      work init error stdout",
+						"      work init error stderr",
+						"      Failed after 1s",
+					))
+				})
+			})
+
+			context("when the executable fails go work use", func() {
+				it.Before(func() {
+					executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
+						if execution.Args[0] == "work" && execution.Args[1] == "use" {
+							fmt.Fprintln(execution.Stdout, "work use error stdout")
+							fmt.Fprintln(execution.Stderr, "work use error stderr")
+							return errors.New("command failed")
+						}
+
+						return nil
+					}
+				})
+
+				it("returns an error", func() {
+					_, err := buildProcess.Execute(gobuild.GoBuildConfiguration{
+						Workspace:           workspacePath,
+						Output:              filepath.Join(layerPath, "bin"),
+						GoPath:              goPath,
+						GoCache:             goCache,
+						Targets:             []string{"."},
+						WorkspaceUseModules: []string{"./some/module1", "./some/module2"},
+					})
+					Expect(err).To(MatchError("failed to execute '[work use ./some/module1 ./some/module2]': command failed"))
+
+					Expect(logs).To(ContainLines(
+						"      work use error stdout",
+						"      work use error stderr",
+						"      Failed after 0s",
+					))
+				})
 			})
 		})
 
