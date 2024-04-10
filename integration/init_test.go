@@ -10,7 +10,6 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/onsi/gomega/format"
 	"github.com/paketo-buildpacks/occam"
-	"github.com/paketo-buildpacks/occam/packagers"
 	"github.com/sclevine/spec"
 	"github.com/sclevine/spec/report"
 
@@ -68,7 +67,7 @@ func TestIntegration(t *testing.T) {
 
 	buildpackStore := occam.NewBuildpackStore()
 
-	libpakBuildpackStore := occam.NewBuildpackStore().WithPackager(packagers.NewLibpak())
+	// libpakBuildpackStore := occam.NewBuildpackStore().WithPackager(packagers.NewLibpak())
 
 	settings.Buildpacks.GoBuild.Online, err = buildpackStore.Get.
 		WithVersion("1.2.3").
@@ -90,14 +89,18 @@ func TestIntegration(t *testing.T) {
 		Execute(settings.Config.GoDist)
 	Expect(err).ToNot(HaveOccurred())
 
-	settings.Buildpacks.Watchexec.Online, err = libpakBuildpackStore.Get.
-		Execute(settings.Config.Watchexec)
-	Expect(err).ToNot(HaveOccurred())
+	// Currently this path way is broken while things are worked out in upstream
+	// pack to allow for multi-arch buildpacks
+	// settings.Buildpacks.Watchexec.Online, err = libpakBuildpackStore.Get.
+	// 	Execute(settings.Config.Watchexec)
+	// Expect(err).ToNot(HaveOccurred())
 
-	settings.Buildpacks.Watchexec.Offline, err = libpakBuildpackStore.Get.
-		WithOfflineDependencies().
-		Execute(settings.Config.Watchexec)
-	Expect(err).ToNot(HaveOccurred())
+	// settings.Buildpacks.Watchexec.Offline, err = libpakBuildpackStore.Get.
+	// 	WithOfflineDependencies().
+	// 	Execute(settings.Config.Watchexec)
+	// Expect(err).ToNot(HaveOccurred())
+
+	settings.Buildpacks.Watchexec.Online = "paketo-buildpacks/watchexec"
 
 	builder, err = pack.Builder.Inspect.Execute()
 	Expect(err).NotTo(HaveOccurred())
