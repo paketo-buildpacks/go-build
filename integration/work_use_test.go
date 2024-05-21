@@ -14,10 +14,9 @@ import (
 	. "github.com/paketo-buildpacks/occam/matchers"
 )
 
-func testTargets(t *testing.T, context spec.G, it spec.S) {
+func testWorkUse(t *testing.T, context spec.G, it spec.S) {
 	var (
-		Expect     = NewWithT(t).Expect
-		Eventually = NewWithT(t).Eventually
+		Expect = NewWithT(t).Expect
 
 		pack   occam.Pack
 		docker occam.Docker
@@ -28,25 +27,19 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 		docker = occam.NewDocker()
 	})
 
-	context("when building an app with multiple targets", func() {
+	context("when building an app with a relative replace directive", func() {
 		var (
-			image        occam.Image
-			container    occam.Container
-			containerIDs map[string]struct{}
-			sbomDir      string
+			image     occam.Image
+			container occam.Container
 
-			name   string
-			source string
+			name    string
+			source  string
+			sbomDir string
 		)
 
 		it.Before(func() {
 			var err error
 			name, err = occam.RandomName()
-			Expect(err).NotTo(HaveOccurred())
-
-			containerIDs = map[string]struct{}{}
-
-			source, err = occam.Source(filepath.Join("testdata", "targets"))
 			Expect(err).NotTo(HaveOccurred())
 
 			sbomDir, err = os.MkdirTemp("", "sbom")
@@ -55,9 +48,7 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it.After(func() {
-			for id := range containerIDs {
-				Expect(docker.Container.Remove.Execute(id)).To(Succeed())
-			}
+			Expect(docker.Container.Remove.Execute(container.ID)).To(Succeed())
 			Expect(docker.Volume.Remove.Execute(occam.CacheVolumeNames(name))).To(Succeed())
 			Expect(docker.Image.Remove.Execute(image.ID)).To(Succeed())
 			Expect(os.RemoveAll(source)).To(Succeed())
@@ -66,45 +57,43 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 
 		it("builds successfully and includes SBOM with modules for built binaries", func() {
 			var err error
+			source, err = occam.Source(filepath.Join("testdata", "work_use"))
+			Expect(err).NotTo(HaveOccurred())
+
 			var logs fmt.Stringer
 			image, logs, err = pack.Build.
 				WithPullPolicy("never").
-				WithEnv(map[string]string{"BP_GO_TARGETS": "first:./second"}).
 				WithBuildpacks(
 					settings.Buildpacks.GoDist.Online,
 					settings.Buildpacks.GoBuild.Online,
 				).
+				WithEnv(map[string]string{
+					"BP_GO_WORK_USE": "./cmd/cli",
+				}).
 				WithSBOMOutputDir(sbomDir).
 				Execute(name, source)
 			Expect(err).ToNot(HaveOccurred(), logs.String)
 
-			container, err = docker.Container.Run.
-				WithEnv(map[string]string{"PORT": "8080"}).
-				WithPublish("8080").
-				WithPublishAll().
-				Execute(image.ID)
+			container, err = docker.Container.Run.Execute(image.ID)
 			Expect(err).NotTo(HaveOccurred())
-			containerIDs[container.ID] = struct{}{}
-
-			Eventually(container).Should(Serve(ContainSubstring("first: go1.21")).OnPort(8080))
 
 			Expect(logs).To(ContainLines(
-				"  Assigning launch processes:",
-				fmt.Sprintf("    first (default): /layers/%s/targets/bin/first", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
-				fmt.Sprintf("    second:          /layers/%s/targets/bin/second", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
+				"  Executing build process",
+				"    Running 'go work init'",
+				"    Running 'go work use ./cmd/cli'",
+				MatchRegexp(fmt.Sprintf(`    Running 'go build -o /layers/%s/targets/bin -buildmode ([^\s]+) -trimpath \./cmd/cli'`, strings.ReplaceAll(settings.Buildpack.ID, "/", "_"))),
+				"      go: downloading github.com/sahilm/fuzzy v0.1.0",
+				MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
 			))
-
-			// The second launch process can be accessed using its name entrypoint
-			container, err = docker.Container.Run.
-				WithEnv(map[string]string{"PORT": "8080"}).
-				WithPublish("8080").
-				WithPublishAll().
-				WithEntrypoint("second").
-				Execute(image.ID)
-			Expect(err).NotTo(HaveOccurred())
-			containerIDs[container.ID] = struct{}{}
-
-			Eventually(container).Should(Serve(ContainSubstring("second: go1.21")).OnPort(8080))
+			Expect(logs).To(ContainLines(
+				fmt.Sprintf("  Generating SBOM for /layers/%s/targets/bin", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+				MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
+			))
+			Expect(logs).To(ContainLines(
+				"  Assigning launch processes:",
+				fmt.Sprintf("    binary (default): /layers/%s/targets/bin/binary", strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+			))
 
 			// check that all required SBOM files are present
 			Expect(filepath.Join(sbomDir, "sbom", "launch", strings.ReplaceAll(settings.Buildpack.ID, "/", "_"), "targets", "sbom.cdx.json")).To(BeARegularFile())
@@ -112,12 +101,9 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 			Expect(filepath.Join(sbomDir, "sbom", "launch", strings.ReplaceAll(settings.Buildpack.ID, "/", "_"), "targets", "sbom.syft.json")).To(BeARegularFile())
 
 			// check an SBOM file to make sure it contains entries for built binaries
-			contents, err := os.ReadFile(filepath.Join(sbomDir, "sbom", "launch", strings.ReplaceAll(settings.Buildpack.ID, "/", "_"), "targets", "sbom.cdx.json"))
+			contents, err := os.ReadFile(filepath.Join(sbomDir, "sbom", "launch", strings.ReplaceAll(settings.Buildpack.ID, "/", "_"), "targets", "sbom.syft.json"))
 			Expect(err).NotTo(HaveOccurred())
-			Expect(string(contents)).To(ContainSubstring(`"name": "github.com/gorilla/mux"`))
 			Expect(string(contents)).To(ContainSubstring(`"name": "github.com/sahilm/fuzzy"`))
-			// and does not contain an entry for the binary that was not compiled
-			Expect(string(contents)).NotTo(ContainSubstring(`"name": "github.com/Masterminds/semver"`))
 		})
 	})
 }

@@ -17,9 +17,10 @@ type TargetManager interface {
 }
 
 type BuildConfiguration struct {
-	Targets    []string
-	Flags      []string
-	ImportPath string
+	Targets             []string
+	Flags               []string
+	ImportPath          string
+	WorkspaceUseModules []string
 }
 
 type BuildConfigurationParser struct {
@@ -65,6 +66,10 @@ func (p BuildConfigurationParser) Parse(buildpackVersion, workingDir string) (Bu
 
 	if val, ok := os.LookupEnv("BP_GO_BUILD_IMPORT_PATH"); ok {
 		buildConfiguration.ImportPath = val
+	}
+
+	if val, ok := os.LookupEnv("BP_GO_WORK_USE"); ok {
+		buildConfiguration.WorkspaceUseModules = filepath.SplitList(val)
 	}
 
 	return buildConfiguration, nil
