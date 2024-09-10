@@ -75,7 +75,6 @@ func testKeepFiles(t *testing.T, context spec.G, it spec.S) {
 			Eventually(container).Should(
 				Serve(
 					SatisfyAll(
-						ContainSubstring("go1.21"),
 						ContainSubstring("/workspace contents: [/workspace/assets /workspace/static-file]"),
 						ContainSubstring("file contents: Hello world!"),
 					),

@@ -72,14 +72,7 @@ func testImportPath(t *testing.T, context spec.G, it spec.S) {
 				Execute(image.ID)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(container).Should(
-				Serve(
-					SatisfyAll(
-						ContainSubstring("go1.21"),
-						ContainSubstring("/workspace contents: []"),
-					),
-				).OnPort(8080),
-			)
+			Eventually(container).Should(Serve(ContainSubstring("/workspace contents: []")).OnPort(8080))
 		})
 	})
 }

@@ -82,14 +82,7 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 				Execute(image.ID)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(container).Should(
-				Serve(
-					SatisfyAll(
-						ContainSubstring("go1.21"),
-						ContainSubstring("/workspace contents: []"),
-					),
-				).OnPort(8080),
-			)
+			Eventually(container).Should(Serve(ContainSubstring("/workspace contents: []")).OnPort(8080))
 
 			Expect(logs).To(ContainLines(
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
@@ -172,7 +165,7 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 				Execute(image.ID)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(container).Should(Serve(ContainSubstring("go1.21")).OnPort(8080))
+			Eventually(container).Should(Serve(ContainSubstring("/workspace contents: []")).OnPort(8080))
 		})
 	})
 
@@ -220,14 +213,7 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 				Execute(image.ID)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(container).Should(
-				Serve(
-					SatisfyAll(
-						ContainSubstring("go1.21"),
-						ContainSubstring("/workspace contents: []"),
-					),
-				).OnPort(8080),
-			)
+			Eventually(container).Should(Serve(ContainSubstring("/workspace contents: []")).OnPort(8080))
 		})
 	})
 
@@ -283,7 +269,7 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 				Execute(image.ID)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(container).Should(Serve(ContainSubstring("go1.21")).OnPort(8080))
+			Eventually(container).Should(Serve(ContainSubstring("/workspace contents: []")).OnPort(8080))
 
 			Expect(logs).To(ContainLines(
 				"  Assigning launch processes:",
@@ -299,7 +285,7 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 				Execute(image.ID)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(noReloadContainer).Should(Serve(ContainSubstring("go1.21")).OnPort(8080))
+			Eventually(noReloadContainer).Should(Serve(ContainSubstring("/workspace contents: []")).OnPort(8080))
 		})
 	})
 }

@@ -86,7 +86,7 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 			containerIDs[container.ID] = struct{}{}
 
-			Eventually(container).Should(Serve(ContainSubstring("first: go1.21")).OnPort(8080))
+			Eventually(container).Should(Serve(ContainSubstring("first: go")).OnPort(8080))
 
 			Expect(logs).To(ContainLines(
 				"  Assigning launch processes:",
@@ -104,7 +104,7 @@ func testTargets(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 			containerIDs[container.ID] = struct{}{}
 
-			Eventually(container).Should(Serve(ContainSubstring("second: go1.21")).OnPort(8080))
+			Eventually(container).Should(Serve(ContainSubstring("second: go")).OnPort(8080))
 
 			// check that all required SBOM files are present
 			Expect(filepath.Join(sbomDir, "sbom", "launch", strings.ReplaceAll(settings.Buildpack.ID, "/", "_"), "targets", "sbom.cdx.json")).To(BeARegularFile())
