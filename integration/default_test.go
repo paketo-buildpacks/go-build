@@ -113,9 +113,8 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			// check an SBOM file to make sure it is generated for the right directory
 			contents, err := os.ReadFile(filepath.Join(sbomDir, "sbom", "launch", strings.ReplaceAll(settings.Buildpack.ID, "/", "_"), "targets", "sbom.syft.json"))
 			Expect(err).NotTo(HaveOccurred())
-			Expect(string(contents)).To(ContainLines(
-				`  "type": "directory",`,
-				fmt.Sprintf(`  "target": "/layers/%s/targets/bin"`, strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
+			Expect(string(contents)).To(ContainSubstring(
+				fmt.Sprintf(`"type":"directory","metadata":{"path":"/layers/%s/targets/bin"}`, strings.ReplaceAll(settings.Buildpack.ID, "/", "_")),
 			))
 		})
 	})
