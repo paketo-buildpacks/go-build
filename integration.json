@@ -1,10 +1,7 @@
 {
-  "go-dist": "github.com/paketo-buildpacks/go-dist",
-  "watchexec": "github.com/paketo-buildpacks/watchexec",
+  "go-dist": "index.docker.io/paketobuildpacks/go-dist",
+  "watchexec": "index.docker.io/paketobuildpacks/watchexec",
   "builders": [
-    "paketobuildpacks/builder-jammy-buildpackless-static",
-    "paketobuildpacks/builder-jammy-buildpackless-tiny",
-    "paketobuildpacks/builder-jammy-buildpackless-base",
-    "paketobuildpacks/builder-jammy-buildpackless-full"
+    "index.docker.io/paketobuildpacks/ubuntu-noble-builder-buildpackless:latest"
   ]
 }
