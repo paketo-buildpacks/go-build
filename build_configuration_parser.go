@@ -21,6 +21,7 @@ type BuildConfiguration struct {
 	Flags               []string
 	ImportPath          string
 	WorkspaceUseModules []string
+	WorkDir             string
 }
 
 type BuildConfigurationParser struct {
@@ -47,12 +48,26 @@ func (p BuildConfigurationParser) Parse(buildpackVersion, workingDir string) (Bu
 		buildConfiguration.Targets = filepath.SplitList(val)
 	}
 
+	if val, ok := os.LookupEnv("BP_GO_WORKDIR"); ok {
+		buildConfiguration.WorkDir = val
+
+		// Validate that the work directory exists
+		workDirPath := filepath.Join(workingDir, val)
+		if info, err := os.Stat(workDirPath); err != nil {
+			return BuildConfiguration{}, fmt.Errorf("BP_GO_WORKDIR path '%s' does not exist: %w", val, err)
+		} else if !info.IsDir() {
+			return BuildConfiguration{}, fmt.Errorf("BP_GO_WORKDIR path '%s' is not a directory", val)
+		}
+	}
 	if len(buildConfiguration.Targets) > 0 {
 		buildConfiguration.Targets, err = p.targetManager.CleanAndValidate(buildConfiguration.Targets, workingDir)
 		if err != nil {
 			return BuildConfiguration{}, err
 		}
 	} else {
+		if buildConfiguration.WorkDir != "" {
+			workingDir = buildConfiguration.WorkDir
+		}
 		buildConfiguration.Targets, err = p.targetManager.GenerateDefaults(workingDir)
 		if err != nil {
 			return BuildConfiguration{}, err

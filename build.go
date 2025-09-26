@@ -70,11 +70,15 @@ func Build(
 			return packit.BuildResult{}, packit.Fail.WithMessage("failed to parse build configuration: %w", err)
 		}
 
-		goPath, path, err := pathManager.Setup(context.WorkingDir, configuration.ImportPath)
+		workingDir := context.WorkingDir
+		if configuration.WorkDir != "" {
+			workingDir = filepath.Join(context.WorkingDir, configuration.WorkDir)
+		}
+
+		goPath, path, err := pathManager.Setup(workingDir, configuration.ImportPath)
 		if err != nil {
 			return packit.BuildResult{}, err
 		}
-
 		config := GoBuildConfiguration{
 			Workspace:           path,
 			Output:              filepath.Join(targetsLayer.Path, "bin"),
@@ -88,6 +92,10 @@ func Build(
 		if isStaticStack(context.Stack) && !containsFlag(config.Flags, "-buildmode") {
 			config.DisableCGO = true
 			config.Flags = append(config.Flags, "-buildmode", "default")
+		}
+
+		if configuration.WorkDir != "" {
+			logs.Process(fmt.Sprintf("Using BP_GO_WORKDIR variable, build subdirectory is '%s'", configuration.WorkDir))
 		}
 
 		binaries, err := buildProcess.Execute(config)
