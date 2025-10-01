@@ -71,6 +71,17 @@ together with `BP_GO_TARGETS`.
 BP_GO_WORK_USE=./cmd/controller:./cmd/webhook
 ```
 
+### `BP_GO_WORKDIR`
+The `BP_GO_WORKDIR` specifies a subdirectory (relative to the app root) which
+will be used as build working directory. This is where the main go package lives.
+For most applications, it is the root directory and this variable is not needed;
+this is useful for monorepos or non-standard applications. The difference between
+`BP_GO_TARGETS` is that it specifies nested targets to build while this var
+changes the directory for building and builds from there.
+```shell
+BP_GO_WORKDIR=subdir/path/to/main
+```
+
 ### `BP_KEEP_FILES`
 The `BP_KEEP_FILES` variable allows to you to specity a path list of files
 (including file globs) that you would like to appear in the workspace of the

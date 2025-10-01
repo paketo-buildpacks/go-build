@@ -363,6 +363,39 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		})
 	})
 
+	context("when BP_GO_WORKDIR is set", func() {
+		it.Before(func() {
+			parser.ParseCall.Returns.BuildConfiguration = gobuild.BuildConfiguration{
+				Targets:    []string{"some-target", "other-target"},
+				Flags:      []string{"some-flag", "other-flag"},
+				ImportPath: "some-import-path",
+				WorkDir:    "main",
+			}
+		})
+
+		it("uses the work directory to setup the workspace", func() {
+			result, err := build(packit.BuildContext{
+				WorkingDir: workingDir,
+				CNBPath:    cnbDir,
+				Stack:      "some-stack",
+				BuildpackInfo: packit.BuildpackInfo{
+					Name:        "Some Buildpack",
+					Version:     "some-version",
+					SBOMFormats: []string{sbom.CycloneDXFormat, sbom.SPDXFormat},
+				},
+				Layers: packit.Layers{Path: layersDir},
+			})
+
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(result.Layers).To(HaveLen(2))
+			Expect(result.Launch.Processes).To(HaveLen(2))
+
+			Expect(pathManager.SetupCall.Receives.Workspace).To(Equal(filepath.Join(workingDir, "main")))
+			Expect(pathManager.SetupCall.Receives.ImportPath).To(Equal("some-import-path"))
+		})
+	})
+
 	context("failure cases", func() {
 		context("when the targets layer cannot be retrieved", func() {
 			it.Before(func() {

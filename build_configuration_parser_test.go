@@ -216,6 +216,53 @@ func testBuildConfigurationParser(t *testing.T, context spec.G, it spec.S) {
 		})
 	})
 
+	context("when BP_GO_WORKDIR is set", func() {
+		it.Before(func() {
+			subDir := filepath.Join(workingDir, "subdir")
+			Expect(os.MkdirAll(subDir, os.ModePerm)).To(Succeed())
+			os.Setenv("BP_GO_WORKDIR", "subdir")
+		})
+
+		it.After(func() {
+			os.Unsetenv("BP_GO_WORKDIR")
+		})
+
+		it("uses the value in the env var", func() {
+			configuration, err := parser.Parse("1.2.3", workingDir)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(configuration).To(Equal(gobuild.BuildConfiguration{
+				Targets: []string{"."},
+				WorkDir: "subdir",
+			}))
+
+			Expect(targetManager.GenerateDefaultsCall.Receives.WorkingDir).To(Equal("subdir"))
+		})
+
+		context("when the work directory does not exist", func() {
+			it.Before(func() {
+				os.Setenv("BP_GO_WORKDIR", "nonexistent/dir")
+			})
+
+			it("returns an error", func() {
+				_, err := parser.Parse("1.2.3", workingDir)
+				Expect(err).To(MatchError(ContainSubstring("BP_GO_WORKDIR path 'nonexistent/dir' does not exist")))
+			})
+		})
+
+		context("when the work directory path points to a file", func() {
+			it.Before(func() {
+				filePath := filepath.Join(workingDir, "testfile")
+				Expect(os.WriteFile(filePath, []byte("test"), os.ModePerm)).To(Succeed())
+				os.Setenv("BP_GO_WORKDIR", "testfile")
+			})
+
+			it("returns an error", func() {
+				_, err := parser.Parse("1.2.3", workingDir)
+				Expect(err).To(MatchError("BP_GO_WORKDIR path 'testfile' is not a directory"))
+			})
+		})
+	})
+
 	context("failure cases", func() {
 		context("when the working directory contains a buildpack.yml", func() {
 			it.Before(func() {
