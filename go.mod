@@ -54,7 +54,7 @@ require (
 	github.com/anchore/go-sync v0.0.0-20250326131806-4eda43a485b6 // indirect
 	github.com/anchore/go-version v1.2.2-0.20200701162849-18adb9c92b9b // indirect
 	github.com/anchore/packageurl-go v0.1.1-0.20250220190351-d62adb6e1115 // indirect
-	github.com/anchore/stereoscope v0.1.16 // indirect
+	github.com/anchore/stereoscope v0.1.17 // indirect
 	github.com/anchore/syft v1.37.0 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
@@ -117,7 +117,7 @@ require (
 	github.com/deitch/magic v0.0.0-20230404182410-1ff89d7342da // indirect
 	github.com/diskfs/go-diskfs v1.7.0 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
-	github.com/docker/cli v29.1.2+incompatible // indirect
+	github.com/docker/cli v29.1.3+incompatible // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
 	github.com/docker/docker v28.5.2+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.9.4 // indirect
@@ -136,7 +136,7 @@ require (
 	github.com/felixge/fgprof v0.9.5 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.11 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
 	github.com/github/go-spdx/v2 v2.3.4 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.6.2 // indirect
