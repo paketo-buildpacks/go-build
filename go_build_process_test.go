@@ -57,9 +57,10 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 			executions = append(executions, execution)
 
 			if execution.Args[0] == "list" {
-				fmt.Fprintf(execution.Stdout, `{
+				_, err := fmt.Fprintf(execution.Stdout, `{
 					"ImportPath": "%s"
 				}`, filepath.Join("some-dir", execution.Args[len(execution.Args)-1]))
+				Expect(err).NotTo(HaveOccurred())
 			}
 			return nil
 		}
@@ -309,8 +310,10 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 				it.Before(func() {
 					executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
 						if execution.Args[0] == "work" && execution.Args[1] == "init" {
-							fmt.Fprintln(execution.Stdout, "work init error stdout")
-							fmt.Fprintln(execution.Stderr, "work init error stderr")
+							_, err := fmt.Fprintln(execution.Stdout, "work init error stdout")
+							Expect(err).NotTo(HaveOccurred())
+							_, err = fmt.Fprintln(execution.Stderr, "work init error stderr")
+							Expect(err).NotTo(HaveOccurred())
 							return errors.New("command failed")
 						}
 
@@ -341,8 +344,10 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 				it.Before(func() {
 					executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
 						if execution.Args[0] == "work" && execution.Args[1] == "use" {
-							fmt.Fprintln(execution.Stdout, "work use error stdout")
-							fmt.Fprintln(execution.Stderr, "work use error stderr")
+							_, err := fmt.Fprintln(execution.Stdout, "work use error stdout")
+							Expect(err).NotTo(HaveOccurred())
+							_, err = fmt.Fprintln(execution.Stderr, "work use error stderr")
+							Expect(err).NotTo(HaveOccurred())
 							return errors.New("command failed")
 						}
 
@@ -373,8 +378,10 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 		context("when the executable fails go build", func() {
 			it.Before(func() {
 				executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
-					fmt.Fprintln(execution.Stdout, "build error stdout")
-					fmt.Fprintln(execution.Stderr, "build error stderr")
+					_, err := fmt.Fprintln(execution.Stdout, "build error stdout")
+					Expect(err).NotTo(HaveOccurred())
+					_, err = fmt.Fprintln(execution.Stderr, "build error stderr")
+					Expect(err).NotTo(HaveOccurred())
 
 					return errors.New("command failed")
 				}
@@ -402,8 +409,10 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 			it.Before(func() {
 				executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
 					if execution.Args[0] == "list" {
-						fmt.Fprintln(execution.Stdout, "build error stdout")
-						fmt.Fprintln(execution.Stderr, "build error stderr")
+						_, err := fmt.Fprintln(execution.Stdout, "build error stdout")
+						Expect(err).NotTo(HaveOccurred())
+						_, err = fmt.Fprintln(execution.Stderr, "build error stderr")
+						Expect(err).NotTo(HaveOccurred())
 						return errors.New("command failed")
 					}
 
@@ -434,7 +443,8 @@ func testGoBuildProcess(t *testing.T, context spec.G, it spec.S) {
 			it.Before(func() {
 				executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
 					if execution.Args[0] == "list" {
-						fmt.Fprintln(execution.Stdout, "%%%")
+						_, err := fmt.Fprintln(execution.Stdout, "%%%")
+						Expect(err).NotTo(HaveOccurred())
 					}
 
 					return nil
