@@ -226,11 +226,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 	context("BP_LIVE_RELOAD_ENABLED=true in the build environment", func() {
 		it.Before(func() {
-			os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")
-		})
-
-		it.After(func() {
-			os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
+			t.Setenv("BP_LIVE_RELOAD_ENABLED", "true")
 		})
 
 		it("wraps the target process(es) in watchexec", func() {
@@ -557,12 +553,9 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 		context("when BP_LIVE_RELOAD_ENABLED value is invalid", func() {
 			it.Before(func() {
-				os.Setenv("BP_LIVE_RELOAD_ENABLED", "not-a-bool")
+				t.Setenv("BP_LIVE_RELOAD_ENABLED", "not-a-bool")
 			})
 
-			it.After(func() {
-				os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
-			})
 			it("returns an error", func() {
 				_, err := build(packit.BuildContext{
 					WorkingDir: workingDir,
