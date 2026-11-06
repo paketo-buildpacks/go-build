@@ -161,7 +161,7 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.24 // indirect
 	github.com/googleapis/gax-go/v2 v2.27.0 // indirect
 	github.com/gookit/color v1.6.3 // indirect
-	github.com/gpustack/gguf-parser-go v0.27.0 // indirect
+	github.com/gpustack/gguf-parser-go v0.28.0 // indirect
 	github.com/hashicorp/aws-sdk-go-base/v2 v2.0.0-beta.76 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
@@ -291,7 +291,7 @@ require (
 	github.com/wagoodman/go-progress v0.0.0-20260303201901-10176f79b2c0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
-	github.com/xo/terminfo v1.2.0 // indirect
+	github.com/xo/terminfo v1.3.0 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	github.com/zclconf/go-cty v1.19.0 // indirect
